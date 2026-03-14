@@ -499,6 +499,29 @@ JWT_SECRET = "..." # Set via wrangler secret
 
 ---
 
+## App Icon
+
+Similar visual style to Police1 (blue/gold/navy colors) but document-based instead of badge:
+
+- **Shape**: Rounded rectangle (document/file shape)
+- **Background**: Navy blue (#1E3A5F)
+- **Main element**: Blue document with black redaction bar across it
+- **Accent**: Gold "1" in corner or on the redaction bar
+- **Style**: Clean, modern, minimal - same feel as Police1's shield
+
+```
+┌─────────────┐
+│  ┌───────┐  │
+│  │ DOC   │  │
+│  │███████│  │  ← black redaction bar
+│  │  ¹    │  │  ← gold "1"
+│  └───────┘  │
+└─────────────┘
+     navy bg
+```
+
+---
+
 ## Next Steps
 
 1. Confirm this plan
