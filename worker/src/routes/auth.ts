@@ -4,23 +4,40 @@ import { authenticate, isAuthContext } from '../middleware/auth';
 
 export async function handleLogin(request: Request, env: Env): Promise<Response> {
   try {
-    const body: LoginRequest = await request.json();
+    const body: LoginRequest & { identifier?: string; identifierType?: string } = await request.json();
 
-    if (!body.email || !body.password) {
-      return error('Email and password are required');
+    // Support both email field and identifier field
+    const identifier = body.identifier || body.email;
+    const identifierType = body.identifierType || 'email';
+
+    if (!identifier || !body.password) {
+      return error('Identifier and password are required');
     }
 
-    const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
-      .bind(body.email)
-      .first<User>();
+    let user: User | null = null;
+
+    if (identifierType === 'badgeNumber') {
+      user = await env.DB.prepare('SELECT * FROM users WHERE badge_number = ?')
+        .bind(identifier)
+        .first<User>();
+    } else if (identifierType === 'employeeId') {
+      user = await env.DB.prepare('SELECT * FROM users WHERE employee_id = ?')
+        .bind(identifier)
+        .first<User>();
+    } else {
+      // Default to email
+      user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
+        .bind(identifier)
+        .first<User>();
+    }
 
     if (!user) {
-      return error('Invalid email or password', 401);
+      return error('Invalid credentials', 401);
     }
 
     const valid = await verifyPassword(body.password, user.password_hash);
     if (!valid) {
-      return error('Invalid email or password', 401);
+      return error('Invalid credentials', 401);
     }
 
     const token = await createJWT(

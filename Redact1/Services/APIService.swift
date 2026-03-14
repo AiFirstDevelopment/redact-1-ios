@@ -81,12 +81,22 @@ actor APIService {
 
     // MARK: - Auth
 
-    func login(email: String, password: String) async throws -> LoginResponse {
-        let body = try JSONEncoder().encode(LoginRequest(email: email, password: password))
+    func login(identifier: String, password: String, identifierType: String) async throws -> LoginResponse {
+        struct LoginBody: Codable {
+            let identifier: String
+            let password: String
+            let identifierType: String
+        }
+        let body = try JSONEncoder().encode(LoginBody(identifier: identifier, password: password, identifierType: identifierType))
         let data = try await makeRequest("/api/auth/login", method: "POST", body: body)
         let response = try JSONDecoder().decode(LoginResponse.self, from: data)
         self.token = response.token
         return response
+    }
+
+    // Convenience for email login
+    func login(email: String, password: String) async throws -> LoginResponse {
+        return try await login(identifier: email, password: password, identifierType: "email")
     }
 
     func logout() async throws {

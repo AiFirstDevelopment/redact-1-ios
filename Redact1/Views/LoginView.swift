@@ -252,17 +252,7 @@ struct LoginView: View {
 
     private func performLogin() {
         Task {
-            // For now, always use email login since backend uses email
-            // In production, you'd send the identifier type to the backend
-            let loginEmail: String
-            if currentType == .email {
-                loginEmail = identifier
-            } else {
-                // For badge/employee ID, we'd need backend support
-                // For now, just use the identifier as email for demo
-                loginEmail = identifier
-            }
-            await authService.login(email: loginEmail, password: password)
+            await authService.login(identifier: identifier, password: password, identifierType: currentType)
         }
     }
 

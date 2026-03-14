@@ -38,12 +38,16 @@ class AuthService: ObservableObject {
         }
     }
 
-    func login(email: String, password: String) async {
+    func login(identifier: String, password: String, identifierType: LoginIdentifierType = .email) async {
         isLoading = true
         error = nil
 
         do {
-            let response = try await APIService.shared.login(email: email, password: password)
+            let response = try await APIService.shared.login(
+                identifier: identifier,
+                password: password,
+                identifierType: identifierType.rawValue
+            )
 
             // Store credentials
             UserDefaults.standard.set(response.token, forKey: tokenKey)
@@ -60,6 +64,11 @@ class AuthService: ObservableObject {
         }
 
         isLoading = false
+    }
+
+    // Convenience method for email login
+    func login(email: String, password: String) async {
+        await login(identifier: email, password: password, identifierType: .email)
     }
 
     func logout() async {
