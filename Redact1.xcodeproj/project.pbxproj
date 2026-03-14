@@ -33,6 +33,8 @@
 		R1000060 /* DetectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000061 /* DetectionOverlay.swift */; };
 		R1000062 /* FileRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000063 /* FileRow.swift */; };
 		R1000064 /* RedactionPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000065 /* RedactionPreview.swift */; };
+		R1000070 /* OnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000071 /* OnboardingService.swift */; };
+		R1000072 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000073 /* OnboardingView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -63,6 +65,8 @@
 		R1000061 /* DetectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionOverlay.swift; sourceTree = "<group>"; };
 		R1000063 /* FileRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRow.swift; sourceTree = "<group>"; };
 		R1000065 /* RedactionPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionPreview.swift; sourceTree = "<group>"; };
+		R1000071 /* OnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingService.swift; sourceTree = "<group>"; };
+		R1000073 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -121,6 +125,7 @@
 			children = (
 				R1000021 /* APIService.swift */,
 				R1000023 /* AuthService.swift */,
+				R1000071 /* OnboardingService.swift */,
 				R1000025 /* VisionService.swift */,
 				R1000027 /* RedactionService.swift */,
 			);
@@ -130,6 +135,7 @@
 		R1000112 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				R1000073 /* OnboardingView.swift */,
 				R1000031 /* LoginView.swift */,
 				R1000033 /* MainTabView.swift */,
 				R1000035 /* RequestListView.swift */,
@@ -251,6 +257,8 @@
 				R1000060 /* DetectionOverlay.swift in Sources */,
 				R1000062 /* FileRow.swift in Sources */,
 				R1000064 /* RedactionPreview.swift in Sources */,
+				R1000070 /* OnboardingService.swift in Sources */,
+				R1000072 /* OnboardingView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
