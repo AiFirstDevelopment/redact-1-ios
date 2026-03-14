@@ -8,7 +8,7 @@ struct ExportView: View {
     @State private var isExporting = false
     @State private var exportComplete = false
     @State private var error: String?
-    @State private var exportedFiles: [(name: String, data: Data)] = []
+    @State private var exportedFiles: [(name: String, url: URL)] = []
 
     var body: some View {
         NavigationStack {
@@ -36,7 +36,7 @@ struct ExportView: View {
                         Text("\(exportedFiles.count) file(s) ready")
                             .foregroundStyle(.secondary)
 
-                        ShareLink(items: exportedFiles.map { $0.data }) {
+                        ShareLink(items: exportedFiles.map { $0.url }) {
                             Label("Share Files", systemImage: "square.and.arrow.up")
                         }
                         .buttonStyle(.borderedProminent)
@@ -107,12 +107,15 @@ struct ExportView: View {
                 // Create export on server
                 let (_, _) = try await APIService.shared.createExport(requestId: request.id)
 
-                // Download redacted files
-                var downloadedFiles: [(name: String, data: Data)] = []
+                // Download redacted files and save to temp directory
+                var downloadedFiles: [(name: String, url: URL)] = []
+                let tempDir = FileManager.default.temporaryDirectory
 
                 for file in files {
                     let data = try await APIService.shared.getFileRedacted(file.id)
-                    downloadedFiles.append((file.filename, data))
+                    let tempURL = tempDir.appendingPathComponent(file.filename)
+                    try data.write(to: tempURL)
+                    downloadedFiles.append((file.filename, tempURL))
                 }
 
                 exportedFiles = downloadedFiles
