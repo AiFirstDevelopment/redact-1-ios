@@ -55,3 +55,4 @@ worker/.dev.vars
 test-results/
 playwright-report/
 .wrangler/
+.claude/settings.json
