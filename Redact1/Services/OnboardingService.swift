@@ -58,6 +58,31 @@ struct AgencyConfig: Codable, Equatable {
             supportPhone: nil
         )
     }
+
+    // Custom decoding to handle API response format
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        code = try container.decode(String.self, forKey: .code)
+        name = try container.decode(String.self, forKey: .name)
+        apiBaseUrl = try container.decode(String.self, forKey: .apiBaseUrl)
+        primaryColor = try container.decodeIfPresent(String.self, forKey: .primaryColor)
+        supportEmail = try container.decodeIfPresent(String.self, forKey: .supportEmail)
+        supportPhone = try container.decodeIfPresent(String.self, forKey: .supportPhone)
+
+        // Decode login identifiers from string array
+        let identifierStrings = try container.decode([String].self, forKey: .loginIdentifiers)
+        loginIdentifiers = identifierStrings.compactMap { LoginIdentifierType(rawValue: $0) }
+    }
+
+    init(code: String, name: String, apiBaseUrl: String, loginIdentifiers: [LoginIdentifierType], primaryColor: String?, supportEmail: String?, supportPhone: String?) {
+        self.code = code
+        self.name = name
+        self.apiBaseUrl = apiBaseUrl
+        self.loginIdentifiers = loginIdentifiers
+        self.primaryColor = primaryColor
+        self.supportEmail = supportEmail
+        self.supportPhone = supportPhone
+    }
 }
 
 // MARK: - Onboarding Service
@@ -70,6 +95,7 @@ final class OnboardingService: ObservableObject {
     @Published var currentAgency: AgencyConfig?
 
     private let agencyKey = "redact1_agency_config"
+    private let baseUrl = "https://redact-1-worker.joelstevick.workers.dev"
 
     private init() {
         loadStoredAgency()
@@ -88,9 +114,8 @@ final class OnboardingService: ObservableObject {
     func enrollWithCode(_ code: String) async throws -> AgencyConfig {
         let normalizedCode = code.uppercased().trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // In production: fetch from server
-        // For now: use mock configs
-        let config = try mockConfigForCode(normalizedCode)
+        // Fetch from API
+        let config = try await fetchAgencyByCode(normalizedCode)
         saveAgency(config)
         return config
     }
@@ -101,7 +126,7 @@ final class OnboardingService: ObservableObject {
         }
 
         let normalizedDomain = String(domain).lowercased()
-        let config = try mockConfigForDomain(normalizedDomain)
+        let config = try await fetchAgencyByDomain(normalizedDomain)
         saveAgency(config)
         return config
     }
@@ -129,69 +154,55 @@ final class OnboardingService: ObservableObject {
         isOnboarded = false
     }
 
-    // MARK: - Mock Configs
+    // MARK: - API Methods
 
-    private func mockConfigForCode(_ code: String) throws -> AgencyConfig {
-        switch code {
-        case "SPRINGFIELD", "SPRINGFIELD-PD":
-            return AgencyConfig(
-                code: "SPRINGFIELD",
-                name: "Springfield Police Department",
-                apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
-                loginIdentifiers: [.badgeNumber, .email],
-                primaryColor: "#1E40AF",
-                supportEmail: "records@springfieldpd.gov",
-                supportPhone: "555-123-4567"
-            )
+    private func fetchAgencyByCode(_ code: String) async throws -> AgencyConfig {
+        let url = URL(string: "\(baseUrl)/api/agencies/code/\(code)")!
 
-        case "RIVERSIDE", "RIVERSIDE-PD":
-            return AgencyConfig(
-                code: "RIVERSIDE",
-                name: "Riverside Police Department",
-                apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
-                loginIdentifiers: [.employeeId, .badgeNumber],
-                primaryColor: "#059669",
-                supportEmail: "foia@riversidepd.org",
-                supportPhone: "555-987-6543"
-            )
+        let (data, response) = try await URLSession.shared.data(from: url)
 
-        case "METRO", "METRO-PD":
-            return AgencyConfig(
-                code: "METRO",
-                name: "Metropolitan Police",
-                apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
-                loginIdentifiers: [.email],
-                primaryColor: "#7C3AED",
-                supportEmail: "records@metro.gov",
-                supportPhone: "555-456-7890"
-            )
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OnboardingError.networkError("Invalid response")
+        }
 
-        case "DEMO", "TEST":
-            return .default
-
-        default:
+        if httpResponse.statusCode == 404 {
             throw OnboardingError.agencyNotFound
         }
+
+        guard httpResponse.statusCode == 200 else {
+            throw OnboardingError.networkError("Status \(httpResponse.statusCode)")
+        }
+
+        let result = try JSONDecoder().decode(AgencyResponse.self, from: data)
+        return result.agency
     }
 
-    private func mockConfigForDomain(_ domain: String) throws -> AgencyConfig {
-        switch domain {
-        case "springfield.gov", "springfieldpd.gov":
-            return try mockConfigForCode("SPRINGFIELD")
+    private func fetchAgencyByDomain(_ domain: String) async throws -> AgencyConfig {
+        let url = URL(string: "\(baseUrl)/api/agencies/domain/\(domain)")!
 
-        case "riverside.gov", "riversidepd.org":
-            return try mockConfigForCode("RIVERSIDE")
+        let (data, response) = try await URLSession.shared.data(from: url)
 
-        case "metro.gov", "metropolice.gov":
-            return try mockConfigForCode("METRO")
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw OnboardingError.networkError("Invalid response")
+        }
 
-        case "example.com", "test.com":
-            return .default
-
-        default:
+        if httpResponse.statusCode == 404 {
             throw OnboardingError.agencyNotFound
         }
+
+        guard httpResponse.statusCode == 200 else {
+            throw OnboardingError.networkError("Status \(httpResponse.statusCode)")
+        }
+
+        let result = try JSONDecoder().decode(AgencyResponse.self, from: data)
+        return result.agency
     }
+}
+
+// MARK: - API Response
+
+private struct AgencyResponse: Codable {
+    let agency: AgencyConfig
 }
 
 // MARK: - Onboarding Errors

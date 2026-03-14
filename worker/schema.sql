@@ -1,3 +1,17 @@
+-- Agencies
+CREATE TABLE IF NOT EXISTS agencies (
+  id TEXT PRIMARY KEY,
+  code TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  api_base_url TEXT NOT NULL,
+  login_identifiers TEXT NOT NULL, -- JSON array: ["email", "badgeNumber"]
+  primary_color TEXT,
+  support_email TEXT,
+  support_phone TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);
+
 -- Users
 CREATE TABLE IF NOT EXISTS users (
   id TEXT PRIMARY KEY,

@@ -31,6 +31,12 @@ import {
   handleGetAuditLog,
   handleGetFileAuditLog,
 } from './routes/exports';
+import {
+  handleGetAgencyByCode,
+  handleGetAgencyByDomain,
+  handleCreateAgency,
+  handleListAgencies,
+} from './routes/agencies';
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
@@ -151,6 +157,18 @@ export default {
       } else if (path.match(/^\/api\/files\/[^/]+\/audit$/) && method === 'GET') {
         const fileId = path.split('/')[3];
         response = await handleGetFileAuditLog(request, env, fileId);
+      }
+      // Agencies routes
+      else if (path === '/api/agencies' && method === 'GET') {
+        response = await handleListAgencies(request, env);
+      } else if (path === '/api/agencies' && method === 'POST') {
+        response = await handleCreateAgency(request, env);
+      } else if (path.match(/^\/api\/agencies\/code\/[^/]+$/) && method === 'GET') {
+        const code = path.split('/')[4];
+        response = await handleGetAgencyByCode(request, env, code);
+      } else if (path.match(/^\/api\/agencies\/domain\/[^/]+$/) && method === 'GET') {
+        const domain = path.split('/')[4];
+        response = await handleGetAgencyByDomain(request, env, domain);
       }
       // Health check
       else if (path === '/api/health' && method === 'GET') {
