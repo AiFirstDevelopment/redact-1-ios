@@ -1,0 +1,15 @@
+name = "redact-1-worker"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "redact-1-db"
+database_id = "4cfa63d3-db09-43a8-bed0-8fc499e547a2"
+
+[[r2_buckets]]
+binding = "FILES_BUCKET"
+bucket_name = "redact-1-files"
+
+[vars]
+ENVIRONMENT = "development"
