@@ -1,6 +1,7 @@
 import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
+import Photos
 
 struct FileUploadView: View {
     @Environment(\.dismiss) private var dismiss
@@ -13,10 +14,30 @@ struct FileUploadView: View {
     @State private var isUploading = false
     @State private var uploadProgress: Double = 0
     @State private var error: String?
+    @State private var photoAccessStatus: PHAuthorizationStatus = .notDetermined
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
+                // Photo access info banner
+                if photoAccessStatus == .limited {
+                    HStack {
+                        Image(systemName: "info.circle.fill")
+                            .foregroundStyle(.blue)
+                        Text("Limited photo access. Tap to grant full access.")
+                            .font(.caption)
+                        Spacer()
+                    }
+                    .padding()
+                    .background(Color.blue.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .onTapGesture {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            UIApplication.shared.open(url)
+                        }
+                    }
+                }
+
                 Spacer()
 
                 // Image picker
@@ -100,6 +121,21 @@ struct FileUploadView: View {
             ) { result in
                 Task {
                     await handleDocumentSelection(result)
+                }
+            }
+            .onAppear {
+                requestPhotoAccess()
+            }
+        }
+    }
+
+    private func requestPhotoAccess() {
+        photoAccessStatus = PHPhotoLibrary.authorizationStatus(for: .readWrite)
+
+        if photoAccessStatus == .notDetermined {
+            PHPhotoLibrary.requestAuthorization(for: .readWrite) { status in
+                DispatchQueue.main.async {
+                    photoAccessStatus = status
                 }
             }
         }

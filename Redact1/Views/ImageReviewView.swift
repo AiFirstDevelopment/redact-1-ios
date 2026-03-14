@@ -3,12 +3,15 @@ import SwiftUI
 struct ImageReviewView: View {
     let file: EvidenceFile
 
+    @Environment(\.dismiss) private var dismiss
     @State private var image: UIImage?
     @State private var detections: [Detection] = []
     @State private var manualRedactions: [ManualRedaction] = []
     @State private var isLoading = false
     @State private var isDetecting = false
     @State private var isSaving = false
+    @State private var isDeleting = false
+    @State private var showingDeleteConfirmation = false
     @State private var error: String?
     @State private var showingPreview = false
     @State private var isDrawingMode = false
@@ -17,6 +20,19 @@ struct ImageReviewView: View {
     var body: some View {
         GeometryReader { geometry in
             VStack(spacing: 0) {
+                // Drawing mode hint
+                if isDrawingMode {
+                    HStack {
+                        Image(systemName: "hand.draw")
+                        Text("Drag on the image to draw a redaction box")
+                            .font(.caption)
+                    }
+                    .padding(8)
+                    .frame(maxWidth: .infinity)
+                    .background(Color.purple.opacity(0.2))
+                    .foregroundStyle(.purple)
+                }
+
                 // Image with overlays
                 ZStack {
                     if let image = image {
@@ -32,6 +48,7 @@ struct ImageReviewView: View {
                                     onDrawComplete: handleDrawComplete
                                 )
                             }
+                            .border(isDrawingMode ? Color.purple : Color.clear, width: 3)
                     } else if isLoading {
                         ProgressView()
                     }
@@ -71,34 +88,56 @@ struct ImageReviewView: View {
         .navigationTitle(file.filename)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button(action: { isDrawingMode.toggle() }) {
-                    Image(systemName: isDrawingMode ? "pencil.circle.fill" : "pencil.circle")
-                }
-
-                Button(action: runDetection) {
-                    if isDetecting {
+            ToolbarItem(placement: .topBarLeading) {
+                Button(role: .destructive, action: { showingDeleteConfirmation = true }) {
+                    if isDeleting {
                         ProgressView()
                     } else {
-                        Image(systemName: "wand.and.stars")
+                        Image(systemName: "trash")
                     }
                 }
-                .disabled(image == nil || isDetecting)
-
-                Button(action: { showingPreview = true }) {
-                    Image(systemName: "eye")
-                }
-                .disabled(image == nil)
-
-                Button(action: saveReview) {
-                    if isSaving {
-                        ProgressView()
-                    } else {
-                        Image(systemName: "checkmark.circle")
-                    }
-                }
-                .disabled(detections.isEmpty && manualRedactions.isEmpty)
+                .disabled(isDeleting)
+                .tint(.red)
             }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack(spacing: 16) {
+                    Button(action: { isDrawingMode.toggle() }) {
+                        Image(systemName: isDrawingMode ? "pencil.circle.fill" : "pencil.circle")
+                    }
+                    .disabled(image == nil)
+
+                    Button(action: runDetection) {
+                        if isDetecting {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "wand.and.stars")
+                        }
+                    }
+                    .disabled(image == nil || isDetecting)
+
+                    Button(action: { showingPreview = true }) {
+                        Image(systemName: "eye")
+                    }
+                    .disabled(image == nil)
+
+                    Button(action: saveReview) {
+                        if isSaving {
+                            ProgressView()
+                        } else {
+                            Image(systemName: "checkmark.circle")
+                        }
+                    }
+                    .disabled(detections.isEmpty && manualRedactions.isEmpty)
+                }
+            }
+        }
+        .confirmationDialog("Delete File", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
+            Button("Delete", role: .destructive) {
+                deleteFile()
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Are you sure you want to delete this file? This cannot be undone.")
         }
         .sheet(isPresented: $showingPreview) {
             if let image = image {
@@ -225,6 +264,19 @@ struct ImageReviewView: View {
                     self.error = error.localizedDescription
                 }
             }
+        }
+    }
+
+    private func deleteFile() {
+        isDeleting = true
+        Task {
+            do {
+                try await APIService.shared.deleteFile(file.id)
+                dismiss()
+            } catch {
+                self.error = error.localizedDescription
+            }
+            isDeleting = false
         }
     }
 

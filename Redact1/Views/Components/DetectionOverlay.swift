@@ -46,7 +46,7 @@ struct DetectionOverlayView: View {
                                     if dragStart == nil {
                                         dragStart = value.startLocation
                                     }
-                                    let start = dragStart!
+                                    guard let start = dragStart else { return }
                                     let current = value.location
 
                                     let minX = min(start.x, current.x)

@@ -40,6 +40,7 @@
 		R1T00005 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00006 /* ModelTests.swift */; };
 		R1T00007 /* APIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00008 /* APIServiceTests.swift */; };
 		R1T00009 /* ViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00010 /* ViewTests.swift */; };
+		R1T00013 /* VisionServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00014 /* VisionServiceTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -88,6 +89,7 @@
 		R1T00008 /* APIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTests.swift; sourceTree = "<group>"; };
 		R1T00010 /* ViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewTests.swift; sourceTree = "<group>"; };
 		R1T00011 /* Redact1Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Redact1Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		R1T00014 /* VisionServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -201,6 +203,7 @@
 				R1T00006 /* ModelTests.swift */,
 				R1T00008 /* APIServiceTests.swift */,
 				R1T00010 /* ViewTests.swift */,
+				R1T00014 /* VisionServiceTests.swift */,
 			);
 			path = Redact1Tests;
 			sourceTree = "<group>";
@@ -343,6 +346,7 @@
 				R1T00005 /* ModelTests.swift in Sources */,
 				R1T00007 /* APIServiceTests.swift in Sources */,
 				R1T00009 /* ViewTests.swift in Sources */,
+				R1T00013 /* VisionServiceTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -486,6 +490,8 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Redact1 needs camera access to scan QR codes during onboarding.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Redact1 needs access to your photos to upload images for redaction processing.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -514,6 +520,8 @@
 				DEVELOPMENT_TEAM = "";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSCameraUsageDescription = "Redact1 needs camera access to scan QR codes during onboarding.";
+				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "Redact1 needs access to your photos to upload images for redaction processing.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

@@ -65,102 +65,86 @@ class VisionService {
     }
 
     private func detectFaces(in cgImage: CGImage) async throws -> [DetectedRegion] {
-        return try await withCheckedThrowingContinuation { continuation in
-            let request = VNDetectFaceRectanglesRequest { request, error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
+        let request = VNDetectFaceRectanglesRequest()
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 
-                let results = (request.results as? [VNFaceObservation]) ?? []
-                let regions = results.map { face in
-                    DetectedRegion(
-                        type: .face,
-                        boundingBox: face.boundingBox,
-                        confidence: face.confidence,
-                        textContent: nil,
-                        pageNumber: nil
-                    )
-                }
-                continuation.resume(returning: regions)
-            }
+        do {
+            try handler.perform([request])
+        } catch {
+            // Vision failed - return empty results instead of crashing
+            print("Face detection failed: \(error)")
+            return []
+        }
 
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                continuation.resume(throwing: error)
-            }
+        let results = (request.results as? [VNFaceObservation]) ?? []
+        return results.map { face in
+            DetectedRegion(
+                type: .face,
+                boundingBox: face.boundingBox,
+                confidence: face.confidence,
+                textContent: nil,
+                pageNumber: nil
+            )
         }
     }
 
     private func detectText(in cgImage: CGImage) async throws -> [DetectedRegion] {
-        return try await withCheckedThrowingContinuation { continuation in
-            let request = VNRecognizeTextRequest { [weak self] request, error in
-                guard let self = self else {
-                    continuation.resume(returning: [])
-                    return
-                }
+        let request = VNRecognizeTextRequest()
+        request.recognitionLevel = .accurate
+        request.usesLanguageCorrection = true
 
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
+        let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
 
-                var regions: [DetectedRegion] = []
-                let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
+        do {
+            try handler.perform([request])
+        } catch {
+            // Vision failed - return empty results instead of crashing
+            print("Text detection failed: \(error)")
+            return []
+        }
 
-                for observation in observations {
-                    guard let candidate = observation.topCandidates(1).first else { continue }
-                    let text = candidate.string
+        var regions: [DetectedRegion] = []
+        let observations = (request.results as? [VNRecognizedTextObservation]) ?? []
 
-                    // Check for PII patterns
-                    for (type, regex) in self.patterns {
-                        let range = NSRange(text.startIndex..., in: text)
-                        let matches = regex.matches(in: text, range: range)
+        for observation in observations {
+            guard let candidate = observation.topCandidates(1).first else { continue }
+            let text = candidate.string
 
-                        for match in matches {
-                            if let swiftRange = Range(match.range, in: text) {
-                                let matchedText = String(text[swiftRange])
-                                regions.append(DetectedRegion(
-                                    type: type,
-                                    boundingBox: observation.boundingBox,
-                                    confidence: candidate.confidence,
-                                    textContent: matchedText,
-                                    pageNumber: nil
-                                ))
-                            }
-                        }
-                    }
+            // Check for PII patterns
+            for (type, regex) in patterns {
+                let range = NSRange(text.startIndex..., in: text)
+                let matches = regex.matches(in: text, range: range)
 
-                    // Check for license plate pattern (simplified - alphanumeric 5-8 chars)
-                    if text.count >= 5 && text.count <= 8 &&
-                       text.allSatisfy({ $0.isLetter || $0.isNumber }) &&
-                       text.contains(where: { $0.isNumber }) &&
-                       text.contains(where: { $0.isLetter }) {
+                for match in matches {
+                    if let swiftRange = Range(match.range, in: text) {
+                        let matchedText = String(text[swiftRange])
                         regions.append(DetectedRegion(
-                            type: .plate,
+                            type: type,
                             boundingBox: observation.boundingBox,
                             confidence: candidate.confidence,
-                            textContent: text,
+                            textContent: matchedText,
                             pageNumber: nil
                         ))
                     }
                 }
-
-                continuation.resume(returning: regions)
             }
 
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
-
-            let handler = VNImageRequestHandler(cgImage: cgImage, options: [:])
-            do {
-                try handler.perform([request])
-            } catch {
-                continuation.resume(throwing: error)
+            // Check for license plate pattern (simplified - alphanumeric 5-8 chars)
+            if text.count >= 5 && text.count <= 8 &&
+               text.allSatisfy({ $0.isLetter || $0.isNumber }) &&
+               text.contains(where: { $0.isNumber }) &&
+               text.contains(where: { $0.isLetter }) {
+                regions.append(DetectedRegion(
+                    type: .plate,
+                    boundingBox: observation.boundingBox,
+                    confidence: candidate.confidence,
+                    textContent: text,
+                    pageNumber: nil
+                ))
             }
         }
+
+        return regions
     }
 
     // MARK: - PDF Detection
