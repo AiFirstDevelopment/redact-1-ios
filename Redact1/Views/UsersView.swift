@@ -115,9 +115,15 @@ struct UserRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.name)
                     .font(.headline)
-                Text(user.email)
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                if let badge = user.badgeNumber, !badge.isEmpty {
+                    Text("Badge: \(badge)")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(user.email)
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .padding(.vertical, 4)
@@ -128,6 +134,8 @@ struct CreateUserView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var email = ""
+    @State private var badgeNumber = ""
+    @State private var role: UserRole = .officer
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var isLoading = false
@@ -145,10 +153,19 @@ struct CreateUserView: View {
                 Section("User Information") {
                     TextField("Name", text: $name)
 
+                    TextField("Badge Number", text: $badgeNumber)
+                        .autocapitalization(.none)
+
                     TextField("Email", text: $email)
                         .textContentType(.emailAddress)
                         .autocapitalization(.none)
                         .keyboardType(.emailAddress)
+
+                    Picker("Role", selection: $role) {
+                        ForEach(UserRole.allCases, id: \.self) { role in
+                            Text(role.displayName).tag(role)
+                        }
+                    }
                 }
 
                 Section("Password") {
@@ -205,7 +222,9 @@ struct CreateUserView: View {
             let newUser = try await APIService.shared.createUser(
                 name: name,
                 email: email,
-                password: password
+                password: password,
+                badgeNumber: badgeNumber.isEmpty ? nil : badgeNumber,
+                role: role
             )
             onSave?(newUser)
             dismiss()

@@ -137,7 +137,7 @@ struct ExportView: View {
             title: "Test Request",
             requestDate: Int(Date().timeIntervalSince1970),
             notes: nil,
-            status: .review,
+            status: .inProgress,
             createdBy: "user",
             createdAt: 0,
             updatedAt: 0

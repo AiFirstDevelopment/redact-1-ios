@@ -11,6 +11,8 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  badge_number: string | null;
+  role: 'officer' | 'admin';
   password_hash: string;
   created_at: number;
   updated_at: number;
@@ -117,6 +119,7 @@ export interface UpdateRequestBody {
   title?: string;
   notes?: string;
   status?: Request['status'];
+  created_by?: string;
 }
 
 export interface CreateDetectionBody {

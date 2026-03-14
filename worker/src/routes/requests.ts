@@ -1,6 +1,14 @@
-import { Env, Request as RequestModel, CreateRequestBody, UpdateRequestBody } from '../types';
+import { Env, Request as RequestModel, CreateRequestBody, UpdateRequestBody, User } from '../types';
 import { json, error, generateId, now } from '../utils';
 import { authenticate, isAuthContext } from '../middleware/auth';
+
+// Helper to check if user is admin
+async function isAdmin(userId: string, env: Env): Promise<boolean> {
+  const user = await env.DB.prepare('SELECT role FROM users WHERE id = ?')
+    .bind(userId)
+    .first<{ role: string }>();
+  return user?.role === 'admin';
+}
 
 export async function handleListRequests(request: Request, env: Env): Promise<Response> {
   const auth = await authenticate(request, env);
@@ -140,6 +148,22 @@ export async function handleUpdateRequest(request: Request, env: Env, id: string
     if (body.status !== undefined) {
       updates.push('status = ?');
       params.push(body.status);
+    }
+
+    // Only admins can reassign requests
+    if (body.created_by !== undefined) {
+      if (!await isAdmin(auth.user.id, env)) {
+        return error('Only admins can reassign requests', 403);
+      }
+      // Verify the target user exists
+      const targetUser = await env.DB.prepare('SELECT id FROM users WHERE id = ?')
+        .bind(body.created_by)
+        .first();
+      if (!targetUser) {
+        return error('Target user not found', 404);
+      }
+      updates.push('created_by = ?');
+      params.push(body.created_by);
     }
 
     params.push(id);

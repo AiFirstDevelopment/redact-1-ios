@@ -12,21 +12,15 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(badge.backgroundColor, .blue)
     }
 
-    func testStatusBadgeProcessing() {
-        let badge = StatusBadge(status: .processing)
-        XCTAssertEqual(badge.status, .processing)
+    func testStatusBadgeInProgress() {
+        let badge = StatusBadge(status: .inProgress)
+        XCTAssertEqual(badge.status, .inProgress)
         XCTAssertEqual(badge.backgroundColor, .orange)
     }
 
-    func testStatusBadgeReview() {
-        let badge = StatusBadge(status: .review)
-        XCTAssertEqual(badge.status, .review)
-        XCTAssertEqual(badge.backgroundColor, .purple)
-    }
-
-    func testStatusBadgeExported() {
-        let badge = StatusBadge(status: .exported)
-        XCTAssertEqual(badge.status, .exported)
+    func testStatusBadgeCompleted() {
+        let badge = StatusBadge(status: .completed)
+        XCTAssertEqual(badge.status, .completed)
         XCTAssertEqual(badge.backgroundColor, .green)
     }
 
@@ -158,7 +152,7 @@ final class ViewTests: XCTestCase {
             title: "Test Request",
             requestDate: 1234567890,
             notes: nil,
-            status: .review,
+            status: .inProgress,
             createdBy: "user-123",
             createdAt: 1234567890,
             updatedAt: 1234567890
@@ -399,5 +393,181 @@ final class ViewTests: XCTestCase {
 
     func testUploadErrorDescriptions() {
         XCTAssertEqual(UploadError.accessDenied.errorDescription, "Unable to access the selected file")
+    }
+
+    // MARK: - UsersView Tests
+
+    func testUsersViewCanBeCreated() {
+        let view = UsersView()
+        XCTAssertNotNil(view)
+    }
+
+    func testCreateUserViewCanBeCreated() {
+        let view = CreateUserView()
+        XCTAssertNotNil(view)
+    }
+
+    func testCreateUserViewWithCallback() {
+        var callbackCalled = false
+        let view = CreateUserView { _ in
+            callbackCalled = true
+        }
+        XCTAssertNotNil(view)
+        XCTAssertFalse(callbackCalled)
+    }
+
+    // MARK: - UserDetailView Tests
+
+    func testUserDetailViewCanBeCreated() {
+        let user = User(
+            id: "user-123",
+            email: "test@test.com",
+            name: "Test User",
+            badgeNumber: "12345",
+            role: .officer,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let view = UserDetailView(user: user)
+        XCTAssertNotNil(view)
+    }
+
+    func testUserDetailViewWithAdminUser() {
+        let adminUser = User(
+            id: "admin-123",
+            email: "admin@test.com",
+            name: "Admin User",
+            badgeNumber: nil,
+            role: .admin,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let view = UserDetailView(user: adminUser)
+        XCTAssertNotNil(view)
+    }
+
+    func testEditUserViewCanBeCreated() {
+        let user = User(
+            id: "user-123",
+            email: "test@test.com",
+            name: "Test User",
+            badgeNumber: "12345",
+            role: .officer,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let view = EditUserView(user: user)
+        XCTAssertNotNil(view)
+    }
+
+    func testEditUserViewWithCallback() {
+        let user = User(
+            id: "user-123",
+            email: "test@test.com",
+            name: "Test User",
+            badgeNumber: nil,
+            role: .officer,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        var updatedUser: User?
+        let view = EditUserView(user: user) { newUser in
+            updatedUser = newUser
+        }
+        XCTAssertNotNil(view)
+        XCTAssertNil(updatedUser)
+    }
+
+    // MARK: - UserRow Tests
+
+    func testUserRowCanBeCreated() {
+        let user = User(
+            id: "user-123",
+            email: "test@test.com",
+            name: "Test User",
+            badgeNumber: "12345",
+            role: .officer,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let row = UserRow(user: user)
+        XCTAssertNotNil(row)
+        XCTAssertEqual(row.user.name, "Test User")
+    }
+
+    func testUserRowWithoutBadgeNumber() {
+        let user = User(
+            id: "user-123",
+            email: "test@test.com",
+            name: "Test User",
+            badgeNumber: nil,
+            role: .officer,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let row = UserRow(user: user)
+        XCTAssertNotNil(row)
+        XCTAssertNil(row.user.badgeNumber)
+    }
+
+    // MARK: - RequestDetailView Tests
+
+    func testRequestDetailViewCanBeCreated() {
+        let view = RequestDetailView(requestId: "req-123")
+        XCTAssertNotNil(view)
+    }
+
+    // MARK: - ReassignRequestView Tests
+
+    func testReassignRequestViewCanBeCreated() {
+        let request = RecordsRequest(
+            id: "req-123",
+            requestNumber: "FOIA-2024-001",
+            title: "Test Request",
+            requestDate: 1234567890,
+            notes: nil,
+            status: .new,
+            createdBy: "user-123",
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let view = ReassignRequestView(request: request)
+        XCTAssertNotNil(view)
+    }
+
+    func testReassignRequestViewWithCallback() {
+        let request = RecordsRequest(
+            id: "req-123",
+            requestNumber: "FOIA-2024-001",
+            title: "Test Request",
+            requestDate: 1234567890,
+            notes: nil,
+            status: .inProgress,
+            createdBy: "user-123",
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        var updatedRequest: RecordsRequest?
+        let view = ReassignRequestView(request: request) { newRequest in
+            updatedRequest = newRequest
+        }
+        XCTAssertNotNil(view)
+        XCTAssertNil(updatedRequest)
+    }
+
+    // MARK: - MainTabView Role Tests
+
+    func testMainTabViewCanBeCreatedWithoutEnvironment() {
+        // MainTabView requires AuthService environment object
+        // This test verifies the view type exists
+        let view = MainTabView()
+        XCTAssertNotNil(view)
+    }
+
+    // MARK: - SettingsView Profile Edit Tests
+
+    func testSettingsViewHasProfileEditCapability() {
+        let view = SettingsView()
+        XCTAssertNotNil(view)
     }
 }

@@ -2,23 +2,40 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var authService: AuthService
+    @State private var showingEditProfile = false
+    @State private var editedUser: User?
 
     var body: some View {
         List {
             Section("Account") {
-                if let user = authService.currentUser {
-                    HStack {
-                        Image(systemName: "person.circle.fill")
-                            .font(.largeTitle)
-                            .foregroundStyle(.blue)
+                if let user = editedUser ?? authService.currentUser {
+                    Button {
+                        showingEditProfile = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "person.circle.fill")
+                                .font(.largeTitle)
+                                .foregroundStyle(.blue)
 
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(user.name)
-                                .font(.headline)
-                            Text(user.email)
-                                .font(.subheadline)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(user.name)
+                                    .font(.headline)
+                                Text(user.email)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                if let badge = user.badgeNumber, !badge.isEmpty {
+                                    Text("Badge: \(badge)")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
                                 .foregroundStyle(.secondary)
                         }
+                        .foregroundStyle(.primary)
                     }
                     .padding(.vertical, 8)
                 }
@@ -52,6 +69,13 @@ struct SettingsView: View {
             }
         }
         .navigationTitle("Settings")
+        .sheet(isPresented: $showingEditProfile) {
+            if let user = editedUser ?? authService.currentUser {
+                EditUserView(user: user) { updatedUser in
+                    editedUser = updatedUser
+                }
+            }
+        }
     }
 }
 

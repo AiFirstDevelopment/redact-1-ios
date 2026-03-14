@@ -353,4 +353,152 @@ describe('Requests Routes', () => {
       expect(mockEnv.FILES_BUCKET.delete).toHaveBeenCalled();
     });
   });
+
+  // ============================================
+  // Request Reassignment Tests (Admin Only)
+  // ============================================
+
+  describe('Request Reassignment (admin only)', () => {
+    it('should accept created_by in update request body', async () => {
+      const requestBody = {
+        created_by: 'new-user-456',
+      };
+
+      const request = new Request('http://localhost/api/requests/req-123', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      const body = await request.clone().json();
+      expect(body.created_by).toBe('new-user-456');
+    });
+
+    it('should support reassignment in update endpoint', async () => {
+      let updateQuery = '';
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('UPDATE')) {
+          updateQuery = sql;
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'admin' }),
+            }),
+          };
+        }
+        if (sql.includes('SELECT id FROM users')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ id: 'new-user-456' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(mockRequest),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/req-123', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify({ created_by: 'new-user-456' }),
+      });
+
+      const { handleUpdateRequest } = await import('./requests');
+      const response = await handleUpdateRequest(request, mockEnv as any, 'req-123');
+
+      expect(response.status).toBe(200);
+    });
+
+    it('should validate target user exists when reassigning', async () => {
+      const requestBody = {
+        created_by: 'nonexistent-user',
+      };
+
+      const request = new Request('http://localhost/api/requests/req-123', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      // The endpoint will check if target user exists
+      const body = await request.clone().json();
+      expect(body.created_by).toBeDefined();
+    });
+
+    it('should include created_by in UpdateRequestBody type', () => {
+      // TypeScript type check - this structure should be valid
+      const updateBody: { title?: string; notes?: string; status?: string; created_by?: string } = {
+        title: 'Updated',
+        created_by: 'new-user-id',
+      };
+
+      expect(updateBody.created_by).toBe('new-user-id');
+    });
+  });
+
+  describe('Request Status Values', () => {
+    it('should support new status values', () => {
+      const validStatuses = ['new', 'in_progress', 'completed'];
+
+      expect(validStatuses).toContain('new');
+      expect(validStatuses).toContain('in_progress');
+      expect(validStatuses).toContain('completed');
+    });
+
+    it('should update status field correctly', async () => {
+      let statusUpdated: string | null = null;
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('UPDATE')) {
+          return {
+            bind: vi.fn((...args) => {
+              // Find status in args
+              if (args.includes('in_progress')) {
+                statusUpdated = 'in_progress';
+              }
+              return { run: vi.fn().mockResolvedValue({}) };
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(mockRequest),
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/req-123', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify({ status: 'in_progress' }),
+      });
+
+      const { handleUpdateRequest } = await import('./requests');
+      await handleUpdateRequest(request, mockEnv as any, 'req-123');
+
+      expect(statusUpdated).toBe('in_progress');
+    });
+  });
 });

@@ -80,14 +80,14 @@ final class APIServiceTests: XCTestCase {
         let body = UpdateRequestBody(
             title: "Updated Title",
             notes: "Updated notes",
-            status: .review
+            status: .inProgress
         )
 
         let data = try JSONEncoder().encode(body)
         let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
 
         XCTAssertEqual(json["title"] as? String, "Updated Title")
-        XCTAssertEqual(json["status"] as? String, "review")
+        XCTAssertEqual(json["status"] as? String, "in_progress")
         XCTAssertEqual(json["notes"] as? String, "Updated notes")
     }
 
@@ -95,14 +95,14 @@ final class APIServiceTests: XCTestCase {
         let body = UpdateRequestBody(
             title: nil,
             notes: nil,
-            status: .exported
+            status: .completed
         )
 
         let data = try JSONEncoder().encode(body)
         let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
 
         XCTAssertNil(json["title"])
-        XCTAssertEqual(json["status"] as? String, "exported")
+        XCTAssertEqual(json["status"] as? String, "completed")
         XCTAssertNil(json["notes"])
     }
 }

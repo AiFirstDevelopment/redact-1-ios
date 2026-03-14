@@ -1,6 +1,6 @@
 import { Env } from './types';
 import { error, json } from './utils';
-import { handleLogin, handleLogout, handleMe, handleCreateUser, handleListUsers, handleGetUser, handleUpdateUser, handleDeleteUser, handleGetUserAudit } from './routes/auth';
+import { handleLogin, handleLogout, handleMe, handleCreateUser, handleListUsers, handleGetUser, handleUpdateUser, handleDeleteUser, handleGetUserAudit, handleGetUserRequests } from './routes/auth';
 import {
   handleListRequests,
   handleGetRequest,
@@ -97,6 +97,9 @@ export default {
       } else if (path.match(/^\/api\/users\/[^/]+\/audit$/) && method === 'GET') {
         const id = path.split('/')[3];
         response = await handleGetUserAudit(request, env, id);
+      } else if (path.match(/^\/api\/users\/[^/]+\/requests$/) && method === 'GET') {
+        const id = path.split('/')[3];
+        response = await handleGetUserRequests(request, env, id);
       }
       // Requests routes
       else if (path === '/api/requests' && method === 'GET') {

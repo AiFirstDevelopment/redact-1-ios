@@ -1,6 +1,12 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @EnvironmentObject var authService: AuthService
+
+    private var isAdmin: Bool {
+        authService.currentUser?.role == .admin
+    }
+
     var body: some View {
         TabView {
             NavigationStack {
@@ -10,11 +16,13 @@ struct MainTabView: View {
                 Label("Requests", systemImage: "doc.text")
             }
 
-            NavigationStack {
-                UsersView()
-            }
-            .tabItem {
-                Label("Users", systemImage: "person.2")
+            if isAdmin {
+                NavigationStack {
+                    UsersView()
+                }
+                .tabItem {
+                    Label("Users", systemImage: "person.2")
+                }
             }
 
             NavigationStack {

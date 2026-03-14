@@ -4,7 +4,7 @@ struct UserDetailView: View {
     let user: User
 
     @Environment(\.dismiss) private var dismiss
-    @State private var auditLogs: [AuditLogEntry] = []
+    @State private var requests: [RecordsRequest] = []
     @State private var isLoading = false
     @State private var error: String?
     @State private var showingEditSheet = false
@@ -18,16 +18,28 @@ struct UserDetailView: View {
                 LabeledContent("Created", value: formatDate(user.createdAt))
             }
 
-            Section("Recent Activity") {
+            Section("Assigned Requests") {
                 if isLoading {
                     ProgressView()
                         .frame(maxWidth: .infinity)
-                } else if auditLogs.isEmpty {
-                    Text("No activity yet")
+                } else if requests.isEmpty {
+                    Text("No requests assigned")
                         .foregroundStyle(.secondary)
                 } else {
-                    ForEach(auditLogs) { log in
-                        AuditLogRow(log: log)
+                    ForEach(requests) { request in
+                        NavigationLink(destination: RequestDetailView(requestId: request.id)) {
+                            HStack {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(request.title)
+                                        .font(.headline)
+                                    Text(request.requestNumber)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                StatusBadge(status: request.status)
+                            }
+                        }
                     }
                 }
             }
@@ -52,14 +64,14 @@ struct UserDetailView: View {
             Text(error ?? "")
         }
         .task {
-            await loadAuditLogs()
+            await loadRequests()
         }
     }
 
-    private func loadAuditLogs() async {
+    private func loadRequests() async {
         isLoading = true
         do {
-            auditLogs = try await APIService.shared.getUserAudit(user.id)
+            requests = try await APIService.shared.getUserRequests(user.id)
         } catch {
             self.error = error.localizedDescription
         }
@@ -77,21 +89,28 @@ struct UserDetailView: View {
 
 struct EditUserView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authService: AuthService
     let user: User
     var onSave: ((User) -> Void)?
 
     @State private var name: String
     @State private var email: String
+    @State private var role: UserRole
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var isLoading = false
     @State private var error: String?
+
+    private var isAdmin: Bool {
+        authService.currentUser?.role == .admin
+    }
 
     init(user: User, onSave: ((User) -> Void)? = nil) {
         self.user = user
         self.onSave = onSave
         _name = State(initialValue: user.name)
         _email = State(initialValue: user.email)
+        _role = State(initialValue: user.role)
     }
 
     var passwordsMatch: Bool {
@@ -99,7 +118,7 @@ struct EditUserView: View {
     }
 
     var hasChanges: Bool {
-        name != user.name || email != user.email || !password.isEmpty
+        name != user.name || email != user.email || role != user.role || !password.isEmpty
     }
 
     var body: some View {
@@ -112,6 +131,14 @@ struct EditUserView: View {
                         .textContentType(.emailAddress)
                         .autocapitalization(.none)
                         .keyboardType(.emailAddress)
+
+                    if isAdmin {
+                        Picker("Role", selection: $role) {
+                            ForEach(UserRole.allCases, id: \.self) { role in
+                                Text(role.displayName).tag(role)
+                            }
+                        }
+                    }
                 }
 
                 Section("Change Password") {
@@ -171,7 +198,8 @@ struct EditUserView: View {
                 user.id,
                 name: name != user.name ? name : nil,
                 email: email != user.email ? email : nil,
-                password: password.isEmpty ? nil : password
+                password: password.isEmpty ? nil : password,
+                role: (isAdmin && role != user.role) ? role : nil
             )
             onSave?(updatedUser)
             dismiss()
@@ -189,8 +217,11 @@ struct EditUserView: View {
             id: "test-123",
             email: "officer@pd.local",
             name: "Officer Smith",
+            badgeNumber: "12345",
+            role: .officer,
             createdAt: 1234567890,
             updatedAt: 1234567890
         ))
     }
+    .environmentObject(AuthService.shared)
 }

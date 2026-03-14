@@ -3,9 +3,69 @@ import XCTest
 
 final class ModelTests: XCTestCase {
 
+    // MARK: - UserRole Tests
+
+    func testUserRoleValues() {
+        XCTAssertEqual(UserRole.officer.rawValue, "officer")
+        XCTAssertEqual(UserRole.admin.rawValue, "admin")
+    }
+
+    func testUserRoleDisplayNames() {
+        XCTAssertEqual(UserRole.officer.displayName, "Officer")
+        XCTAssertEqual(UserRole.admin.displayName, "Admin")
+    }
+
+    func testUserRoleAllCases() {
+        let roles = UserRole.allCases
+        XCTAssertEqual(roles.count, 2)
+        XCTAssertTrue(roles.contains(.officer))
+        XCTAssertTrue(roles.contains(.admin))
+    }
+
     // MARK: - User Model Tests
 
     func testUserDecoding() throws {
+        let json = """
+        {
+            "id": "user-123",
+            "email": "test@test.com",
+            "name": "Test User",
+            "role": "officer",
+            "created_at": 1234567890,
+            "updated_at": 1234567890
+        }
+        """.data(using: .utf8)!
+
+        let user = try JSONDecoder().decode(User.self, from: json)
+
+        XCTAssertEqual(user.id, "user-123")
+        XCTAssertEqual(user.email, "test@test.com")
+        XCTAssertEqual(user.name, "Test User")
+        XCTAssertEqual(user.role, .officer)
+        XCTAssertEqual(user.createdAt, 1234567890)
+        XCTAssertEqual(user.updatedAt, 1234567890)
+    }
+
+    func testUserDecodingWithAdminRole() throws {
+        let json = """
+        {
+            "id": "admin-123",
+            "email": "admin@test.com",
+            "name": "Admin User",
+            "role": "admin",
+            "created_at": 1234567890,
+            "updated_at": 1234567890
+        }
+        """.data(using: .utf8)!
+
+        let user = try JSONDecoder().decode(User.self, from: json)
+
+        XCTAssertEqual(user.id, "admin-123")
+        XCTAssertEqual(user.role, .admin)
+    }
+
+    func testUserDecodingWithoutRole() throws {
+        // Test that role defaults to officer when not present
         let json = """
         {
             "id": "user-123",
@@ -18,11 +78,25 @@ final class ModelTests: XCTestCase {
 
         let user = try JSONDecoder().decode(User.self, from: json)
 
-        XCTAssertEqual(user.id, "user-123")
-        XCTAssertEqual(user.email, "test@test.com")
-        XCTAssertEqual(user.name, "Test User")
-        XCTAssertEqual(user.createdAt, 1234567890)
-        XCTAssertEqual(user.updatedAt, 1234567890)
+        XCTAssertEqual(user.role, .officer)
+    }
+
+    func testUserDecodingWithBadgeNumber() throws {
+        let json = """
+        {
+            "id": "user-123",
+            "email": "officer@test.com",
+            "name": "Officer Smith",
+            "badge_number": "12345",
+            "role": "officer",
+            "created_at": 1234567890,
+            "updated_at": 1234567890
+        }
+        """.data(using: .utf8)!
+
+        let user = try JSONDecoder().decode(User.self, from: json)
+
+        XCTAssertEqual(user.badgeNumber, "12345")
     }
 
     func testUserIdentifiable() throws {
@@ -40,6 +114,24 @@ final class ModelTests: XCTestCase {
 
         // User conforms to Identifiable
         XCTAssertEqual(user.id, "user-123")
+    }
+
+    func testUserInitializer() {
+        let user = User(
+            id: "test-id",
+            email: "test@test.com",
+            name: "Test User",
+            badgeNumber: "54321",
+            role: .admin,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+
+        XCTAssertEqual(user.id, "test-id")
+        XCTAssertEqual(user.email, "test@test.com")
+        XCTAssertEqual(user.name, "Test User")
+        XCTAssertEqual(user.badgeNumber, "54321")
+        XCTAssertEqual(user.role, .admin)
     }
 
     // MARK: - AuthState Tests
@@ -71,33 +163,29 @@ final class ModelTests: XCTestCase {
 
     func testRequestStatusValues() {
         XCTAssertEqual(RequestStatus.new.rawValue, "new")
-        XCTAssertEqual(RequestStatus.processing.rawValue, "processing")
-        XCTAssertEqual(RequestStatus.review.rawValue, "review")
-        XCTAssertEqual(RequestStatus.exported.rawValue, "exported")
+        XCTAssertEqual(RequestStatus.inProgress.rawValue, "in_progress")
+        XCTAssertEqual(RequestStatus.completed.rawValue, "completed")
     }
 
     func testRequestStatusDisplayName() {
         XCTAssertEqual(RequestStatus.new.displayName, "New")
-        XCTAssertEqual(RequestStatus.processing.displayName, "Processing")
-        XCTAssertEqual(RequestStatus.review.displayName, "Review")
-        XCTAssertEqual(RequestStatus.exported.displayName, "Exported")
+        XCTAssertEqual(RequestStatus.inProgress.displayName, "In Progress")
+        XCTAssertEqual(RequestStatus.completed.displayName, "Completed")
     }
 
     func testRequestStatusColor() {
         XCTAssertEqual(RequestStatus.new.color, "blue")
-        XCTAssertEqual(RequestStatus.processing.color, "orange")
-        XCTAssertEqual(RequestStatus.review.color, "purple")
-        XCTAssertEqual(RequestStatus.exported.color, "green")
+        XCTAssertEqual(RequestStatus.inProgress.color, "orange")
+        XCTAssertEqual(RequestStatus.completed.color, "green")
     }
 
     func testAllRequestStatuses() {
         let statuses = RequestStatus.allCases
 
-        XCTAssertEqual(statuses.count, 4)
+        XCTAssertEqual(statuses.count, 3)
         XCTAssertTrue(statuses.contains(.new))
-        XCTAssertTrue(statuses.contains(.processing))
-        XCTAssertTrue(statuses.contains(.review))
-        XCTAssertTrue(statuses.contains(.exported))
+        XCTAssertTrue(statuses.contains(.inProgress))
+        XCTAssertTrue(statuses.contains(.completed))
     }
 
     func testRequestDecoding() throws {
@@ -390,5 +478,45 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(json["title"] as? String, "Test Request")
         XCTAssertEqual(json["request_date"] as? Int, 1234567890)
         XCTAssertEqual(json["notes"] as? String, "Some notes")
+    }
+
+    // MARK: - UpdateRequestBody Tests
+
+    func testUpdateRequestBodyEncoding() throws {
+        var body = UpdateRequestBody()
+        body.title = "Updated Title"
+        body.status = .inProgress
+
+        let data = try JSONEncoder().encode(body)
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+        XCTAssertEqual(json["title"] as? String, "Updated Title")
+        XCTAssertEqual(json["status"] as? String, "in_progress")
+    }
+
+    func testUpdateRequestBodyWithCreatedBy() throws {
+        var body = UpdateRequestBody()
+        body.createdBy = "new-user-456"
+
+        let data = try JSONEncoder().encode(body)
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+        XCTAssertEqual(json["created_by"] as? String, "new-user-456")
+    }
+
+    func testUpdateRequestBodyAllFields() throws {
+        var body = UpdateRequestBody()
+        body.title = "New Title"
+        body.notes = "New Notes"
+        body.status = .completed
+        body.createdBy = "user-789"
+
+        let data = try JSONEncoder().encode(body)
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+        XCTAssertEqual(json["title"] as? String, "New Title")
+        XCTAssertEqual(json["notes"] as? String, "New Notes")
+        XCTAssertEqual(json["status"] as? String, "completed")
+        XCTAssertEqual(json["created_by"] as? String, "user-789")
     }
 }

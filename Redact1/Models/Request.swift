@@ -30,25 +30,22 @@ struct RecordsRequest: Codable, Identifiable {
 
 enum RequestStatus: String, Codable, CaseIterable {
     case new
-    case processing
-    case review
-    case exported
+    case inProgress = "in_progress"
+    case completed
 
     var displayName: String {
         switch self {
         case .new: return "New"
-        case .processing: return "Processing"
-        case .review: return "Review"
-        case .exported: return "Exported"
+        case .inProgress: return "In Progress"
+        case .completed: return "Completed"
         }
     }
 
     var color: String {
         switch self {
         case .new: return "blue"
-        case .processing: return "orange"
-        case .review: return "purple"
-        case .exported: return "green"
+        case .inProgress: return "orange"
+        case .completed: return "green"
         }
     }
 }
@@ -70,4 +67,10 @@ struct UpdateRequestBody: Codable {
     var title: String?
     var notes: String?
     var status: RequestStatus?
+    var createdBy: String?
+
+    enum CodingKeys: String, CodingKey {
+        case title, notes, status
+        case createdBy = "created_by"
+    }
 }

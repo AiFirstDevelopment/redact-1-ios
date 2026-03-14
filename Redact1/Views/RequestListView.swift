@@ -160,9 +160,8 @@ struct StatusBadge: View {
     var backgroundColor: Color {
         switch status {
         case .new: return .blue
-        case .processing: return .orange
-        case .review: return .purple
-        case .exported: return .green
+        case .inProgress: return .orange
+        case .completed: return .green
         }
     }
 

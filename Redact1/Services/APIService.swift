@@ -121,13 +121,15 @@ actor APIService {
         return response["users"] ?? []
     }
 
-    func createUser(name: String, email: String, password: String) async throws -> User {
+    func createUser(name: String, email: String, password: String, badgeNumber: String?, role: UserRole = .officer) async throws -> User {
         struct CreateUserBody: Codable {
             let name: String
             let email: String
             let password: String
+            let badge_number: String?
+            let role: String
         }
-        let body = try JSONEncoder().encode(CreateUserBody(name: name, email: email, password: password))
+        let body = try JSONEncoder().encode(CreateUserBody(name: name, email: email, password: password, badge_number: badgeNumber, role: role.rawValue))
         let data = try await makeRequest("/api/users", method: "POST", body: body)
         let response = try JSONDecoder().decode([String: User].self, from: data)
         guard let user = response["user"] else {
@@ -145,13 +147,14 @@ actor APIService {
         return user
     }
 
-    func updateUser(_ id: String, name: String?, email: String?, password: String?) async throws -> User {
+    func updateUser(_ id: String, name: String?, email: String?, password: String?, role: UserRole? = nil) async throws -> User {
         struct UpdateUserBody: Codable {
             let name: String?
             let email: String?
             let password: String?
+            let role: String?
         }
-        let body = try JSONEncoder().encode(UpdateUserBody(name: name, email: email, password: password))
+        let body = try JSONEncoder().encode(UpdateUserBody(name: name, email: email, password: password, role: role?.rawValue))
         let data = try await makeRequest("/api/users/\(id)", method: "PUT", body: body)
         let response = try JSONDecoder().decode([String: User].self, from: data)
         guard let user = response["user"] else {
@@ -168,6 +171,12 @@ actor APIService {
         let data = try await makeRequest("/api/users/\(id)/audit")
         let response = try JSONDecoder().decode([String: [AuditLogEntry]].self, from: data)
         return response["audit_logs"] ?? []
+    }
+
+    func getUserRequests(_ id: String) async throws -> [RecordsRequest] {
+        let data = try await makeRequest("/api/users/\(id)/requests")
+        let response = try JSONDecoder().decode([String: [RecordsRequest]].self, from: data)
+        return response["requests"] ?? []
     }
 
     // MARK: - Requests
