@@ -35,7 +35,22 @@
 		R1000064 /* RedactionPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000065 /* RedactionPreview.swift */; };
 		R1000070 /* OnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000071 /* OnboardingService.swift */; };
 		R1000072 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000073 /* OnboardingView.swift */; };
+		R1T00001 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00002 /* AuthServiceTests.swift */; };
+		R1T00003 /* OnboardingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00004 /* OnboardingServiceTests.swift */; };
+		R1T00005 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00006 /* ModelTests.swift */; };
+		R1T00007 /* APIServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00008 /* APIServiceTests.swift */; };
+		R1T00009 /* ViewTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00010 /* ViewTests.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		R1T00020 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = R1000400 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = R1000200;
+			remoteInfo = Redact1;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		R1000002 /* Redact1App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redact1App.swift; sourceTree = "<group>"; };
@@ -67,10 +82,23 @@
 		R1000065 /* RedactionPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionPreview.swift; sourceTree = "<group>"; };
 		R1000071 /* OnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingService.swift; sourceTree = "<group>"; };
 		R1000073 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		R1T00002 /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
+		R1T00004 /* OnboardingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingServiceTests.swift; sourceTree = "<group>"; };
+		R1T00006 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+		R1T00008 /* APIServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIServiceTests.swift; sourceTree = "<group>"; };
+		R1T00010 /* ViewTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewTests.swift; sourceTree = "<group>"; };
+		R1T00011 /* Redact1Tests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Redact1Tests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		R1000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		R1T00030 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -84,6 +112,7 @@
 			isa = PBXGroup;
 			children = (
 				R1000101 /* Redact1 */,
+				R1T00100 /* Redact1Tests */,
 				R1000102 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -105,6 +134,7 @@
 			isa = PBXGroup;
 			children = (
 				R1000007 /* Redact1.app */,
+				R1T00011 /* Redact1Tests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -163,6 +193,18 @@
 			path = Components;
 			sourceTree = "<group>";
 		};
+		R1T00100 /* Redact1Tests */ = {
+			isa = PBXGroup;
+			children = (
+				R1T00002 /* AuthServiceTests.swift */,
+				R1T00004 /* OnboardingServiceTests.swift */,
+				R1T00006 /* ModelTests.swift */,
+				R1T00008 /* APIServiceTests.swift */,
+				R1T00010 /* ViewTests.swift */,
+			);
+			path = Redact1Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -183,6 +225,24 @@
 			productReference = R1000007 /* Redact1.app */;
 			productType = "com.apple.product-type.application";
 		};
+		R1T00200 /* Redact1Tests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = R1T00300 /* Build configuration list for PBXNativeTarget "Redact1Tests" */;
+			buildPhases = (
+				R1T00201 /* Sources */,
+				R1T00030 /* Frameworks */,
+				R1T00202 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				R1T00021 /* PBXTargetDependency */,
+			);
+			name = Redact1Tests;
+			productName = Redact1Tests;
+			productReference = R1T00011 /* Redact1Tests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -195,6 +255,10 @@
 				TargetAttributes = {
 					R1000200 = {
 						CreatedOnToolsVersion = 15.0;
+					};
+					R1T00200 = {
+						CreatedOnToolsVersion = 15.0;
+						TestTargetID = R1000200;
 					};
 				};
 			};
@@ -212,6 +276,7 @@
 			projectRoot = "";
 			targets = (
 				R1000200 /* Redact1 */,
+				R1T00200 /* Redact1Tests */,
 			);
 		};
 /* End PBXProject section */
@@ -222,6 +287,13 @@
 			buildActionMask = 2147483647;
 			files = (
 				R1000005 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		R1T00202 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -262,7 +334,27 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		R1T00201 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				R1T00001 /* AuthServiceTests.swift in Sources */,
+				R1T00003 /* OnboardingServiceTests.swift in Sources */,
+				R1T00005 /* ModelTests.swift in Sources */,
+				R1T00007 /* APIServiceTests.swift in Sources */,
+				R1T00009 /* ViewTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		R1T00021 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = R1000200 /* Redact1 */;
+			targetProxy = R1T00020 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		R1000500 /* Debug */ = {
@@ -440,6 +532,44 @@
 			};
 			name = Release;
 		};
+		R1T00500 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aifirst.Redact1Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Redact1.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Redact1";
+			};
+			name = Debug;
+		};
+		R1T00501 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aifirst.Redact1Tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Redact1.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Redact1";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -457,6 +587,15 @@
 			buildConfigurations = (
 				R1000500 /* Debug */,
 				R1000501 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		R1T00300 /* Build configuration list for PBXNativeTarget "Redact1Tests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				R1T00500 /* Debug */,
+				R1T00501 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
