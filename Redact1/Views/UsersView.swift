@@ -47,13 +47,10 @@ struct UsersView: View {
     }
 
     private func loadUsers() async {
-        // Note: In a real implementation, there would be a list users endpoint
-        // For now, we'll just show the current user
         isLoading = true
 
         do {
-            let currentUser = try await APIService.shared.getCurrentUser()
-            users = [currentUser]
+            users = try await APIService.shared.listUsers()
         } catch {
             self.error = error.localizedDescription
         }
@@ -160,9 +157,17 @@ struct CreateUserView: View {
         isLoading = true
         error = nil
 
-        // Note: This would call a create user API endpoint
-        // For now, we'll just show an error
-        error = "User creation via API not yet implemented"
+        do {
+            let newUser = try await APIService.shared.createUser(
+                name: name,
+                email: email,
+                password: password
+            )
+            onSave?(newUser)
+            dismiss()
+        } catch {
+            self.error = error.localizedDescription
+        }
 
         isLoading = false
     }

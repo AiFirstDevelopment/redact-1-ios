@@ -96,8 +96,22 @@ export async function handleMe(request: Request, env: Env): Promise<Response> {
   return json({ user });
 }
 
-// Create initial admin user (for setup only)
+// List all users (requires authentication)
+export async function handleListUsers(request: Request, env: Env): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  const users = await env.DB.prepare(
+    'SELECT id, email, name, created_at, updated_at FROM users ORDER BY name ASC'
+  ).all();
+
+  return json({ users: users.results || [] });
+}
+
+// Create user (requires authentication)
 export async function handleCreateUser(request: Request, env: Env): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
   try {
     const body: { email: string; password: string; name: string } = await request.json();
 
@@ -122,6 +136,13 @@ export async function handleCreateUser(request: Request, env: Env): Promise<Resp
       'INSERT INTO users (id, email, name, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)'
     )
       .bind(id, body.email, body.name, passwordHash, timestamp, timestamp)
+      .run();
+
+    // Log the user creation
+    await env.DB.prepare(
+      'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    )
+      .bind(generateId(), auth.user.id, 'create_user', 'user', id, timestamp)
       .run();
 
     return json({

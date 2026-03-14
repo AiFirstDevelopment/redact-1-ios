@@ -1,6 +1,6 @@
 import { Env } from './types';
 import { error, json } from './utils';
-import { handleLogin, handleLogout, handleMe, handleCreateUser } from './routes/auth';
+import { handleLogin, handleLogout, handleMe, handleCreateUser, handleListUsers } from './routes/auth';
 import {
   handleListRequests,
   handleGetRequest,
@@ -80,8 +80,10 @@ export default {
       } else if (path === '/api/auth/me' && method === 'GET') {
         response = await handleMe(request, env);
       }
-      // User creation (for setup)
-      else if (path === '/api/users' && method === 'POST') {
+      // User routes
+      else if (path === '/api/users' && method === 'GET') {
+        response = await handleListUsers(request, env);
+      } else if (path === '/api/users' && method === 'POST') {
         response = await handleCreateUser(request, env);
       }
       // Requests routes

@@ -113,6 +113,29 @@ actor APIService {
         return user
     }
 
+    // MARK: - Users
+
+    func listUsers() async throws -> [User] {
+        let data = try await makeRequest("/api/users")
+        let response = try JSONDecoder().decode([String: [User]].self, from: data)
+        return response["users"] ?? []
+    }
+
+    func createUser(name: String, email: String, password: String) async throws -> User {
+        struct CreateUserBody: Codable {
+            let name: String
+            let email: String
+            let password: String
+        }
+        let body = try JSONEncoder().encode(CreateUserBody(name: name, email: email, password: password))
+        let data = try await makeRequest("/api/users", method: "POST", body: body)
+        let response = try JSONDecoder().decode([String: User].self, from: data)
+        guard let user = response["user"] else {
+            throw APIError.invalidResponse
+        }
+        return user
+    }
+
     // MARK: - Requests
 
     func listRequests(status: RequestStatus? = nil, search: String? = nil) async throws -> [RecordsRequest] {
