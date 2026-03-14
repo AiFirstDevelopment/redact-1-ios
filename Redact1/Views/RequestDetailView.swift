@@ -14,7 +14,7 @@ struct RequestDetailView: View {
     @State private var showingReassignSheet = false
 
     private var isAdmin: Bool {
-        authService.currentUser?.role == .admin
+        authService.currentUser?.role == .supervisor
     }
 
     var body: some View {
@@ -208,11 +208,9 @@ struct ReassignRequestView: View {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(user.name)
                                         .font(.headline)
-                                    if let badge = user.badgeNumber, !badge.isEmpty {
-                                        Text("Badge: \(badge)")
-                                            .font(.caption)
-                                            .foregroundStyle(.secondary)
-                                    }
+                                    Text(user.email)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
                                 }
                                 Spacer()
                                 if selectedUserId == user.id || (selectedUserId == nil && user.id == request.createdBy) {

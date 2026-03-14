@@ -16,11 +16,7 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
 
     let user: User | null = null;
 
-    if (identifierType === 'badgeNumber') {
-      user = await env.DB.prepare('SELECT * FROM users WHERE badge_number = ?')
-        .bind(identifier)
-        .first<User>();
-    } else if (identifierType === 'employeeId') {
+    if (identifierType === 'employeeId') {
       user = await env.DB.prepare('SELECT * FROM users WHERE employee_id = ?')
         .bind(identifier)
         .first<User>();
@@ -58,8 +54,7 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
         id: user.id,
         email: user.email,
         name: user.name,
-        badge_number: user.badge_number,
-        role: user.role || 'officer',
+        role: user.role || 'clerk',
         created_at: user.created_at,
         updated_at: user.updated_at,
       },
@@ -69,12 +64,12 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
   }
 }
 
-// Helper to check if user is admin
-async function isAdmin(userId: string, env: Env): Promise<boolean> {
+// Helper to check if user is supervisor
+async function isSupervisor(userId: string, env: Env): Promise<boolean> {
   const user = await env.DB.prepare('SELECT role FROM users WHERE id = ?')
     .bind(userId)
     .first<{ role: string }>();
-  return user?.role === 'admin';
+  return user?.role === 'supervisor';
 }
 
 export async function handleLogout(request: Request, env: Env): Promise<Response> {
@@ -95,7 +90,7 @@ export async function handleMe(request: Request, env: Env): Promise<Response> {
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
 
-  const user = await env.DB.prepare('SELECT id, email, name, badge_number, role, created_at, updated_at FROM users WHERE id = ?')
+  const user = await env.DB.prepare('SELECT id, email, name, role, created_at, updated_at FROM users WHERE id = ?')
     .bind(auth.user.id)
     .first();
 
@@ -111,12 +106,12 @@ export async function handleListUsers(request: Request, env: Env): Promise<Respo
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
 
-  if (!await isAdmin(auth.user.id, env)) {
-    return error('Admin access required', 403);
+  if (!await isSupervisor(auth.user.id, env)) {
+    return error('Supervisor access required', 403);
   }
 
   const users = await env.DB.prepare(
-    'SELECT id, email, name, badge_number, role, created_at, updated_at FROM users ORDER BY name ASC'
+    'SELECT id, email, name, role, created_at, updated_at FROM users ORDER BY name ASC'
   ).all();
 
   return json({ users: users.results || [] });
@@ -127,19 +122,19 @@ export async function handleCreateUser(request: Request, env: Env): Promise<Resp
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
 
-  if (!await isAdmin(auth.user.id, env)) {
-    return error('Admin access required', 403);
+  if (!await isSupervisor(auth.user.id, env)) {
+    return error('Supervisor access required', 403);
   }
 
   try {
-    const body: { email: string; password: string; name: string; badge_number?: string; role?: string } = await request.json();
+    const body: { email: string; password: string; name: string; role?: string } = await request.json();
 
     if (!body.email || !body.password || !body.name) {
       return error('Email, password, and name are required');
     }
 
     // Validate role
-    const role = body.role === 'admin' ? 'admin' : 'officer';
+    const role = body.role === 'supervisor' ? 'supervisor' : 'clerk';
 
     // Check if user already exists
     const existing = await env.DB.prepare('SELECT id FROM users WHERE email = ?')
@@ -155,9 +150,9 @@ export async function handleCreateUser(request: Request, env: Env): Promise<Resp
     const timestamp = now();
 
     await env.DB.prepare(
-      'INSERT INTO users (id, email, name, badge_number, role, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO users (id, email, name, role, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
     )
-      .bind(id, body.email, body.name, body.badge_number || null, role, passwordHash, timestamp, timestamp)
+      .bind(id, body.email, body.name, role, passwordHash, timestamp, timestamp)
       .run();
 
     // Log the user creation
@@ -172,7 +167,6 @@ export async function handleCreateUser(request: Request, env: Env): Promise<Resp
         id,
         email: body.email,
         name: body.name,
-        badge_number: body.badge_number || null,
         role,
         created_at: timestamp,
         updated_at: timestamp,
@@ -189,7 +183,7 @@ export async function handleGetUser(request: Request, env: Env, userId: string):
   if (!isAuthContext(auth)) return auth;
 
   const user = await env.DB.prepare(
-    'SELECT id, email, name, badge_number, role, created_at, updated_at FROM users WHERE id = ?'
+    'SELECT id, email, name, role, created_at, updated_at FROM users WHERE id = ?'
   )
     .bind(userId)
     .first();
@@ -207,9 +201,9 @@ export async function handleUpdateUser(request: Request, env: Env, userId: strin
   if (!isAuthContext(auth)) return auth;
 
   const isSelf = auth.user.id === userId;
-  const admin = await isAdmin(auth.user.id, env);
+  const supervisor = await isSupervisor(auth.user.id, env);
 
-  if (!isSelf && !admin) {
+  if (!isSelf && !supervisor) {
     return error('You can only edit your own profile', 403);
   }
 
@@ -239,7 +233,7 @@ export async function handleUpdateUser(request: Request, env: Env, userId: strin
     const newEmail = body.email || existing.email;
     const newPasswordHash = body.password ? await hashPassword(body.password) : existing.password_hash;
     // Only admin can change roles
-    const newRole = (admin && body.role) ? (body.role === 'admin' ? 'admin' : 'officer') : existing.role;
+    const newRole = (supervisor && body.role) ? (body.role === 'supervisor' ? 'supervisor' : 'clerk') : existing.role;
 
     await env.DB.prepare(
       'UPDATE users SET name = ?, email = ?, password_hash = ?, role = ?, updated_at = ? WHERE id = ?'
@@ -259,7 +253,6 @@ export async function handleUpdateUser(request: Request, env: Env, userId: strin
         id: userId,
         email: newEmail,
         name: newName,
-        badge_number: existing.badge_number,
         role: newRole,
         created_at: existing.created_at,
         updated_at: timestamp,
@@ -275,8 +268,8 @@ export async function handleDeleteUser(request: Request, env: Env, userId: strin
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
 
-  if (!await isAdmin(auth.user.id, env)) {
-    return error('Admin access required', 403);
+  if (!await isSupervisor(auth.user.id, env)) {
+    return error('Supervisor access required', 403);
   }
 
   // Prevent self-deletion

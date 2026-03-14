@@ -11,8 +11,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
-  badge_number: string | null;
-  role: 'officer' | 'admin';
+  role: 'clerk' | 'supervisor';
   password_hash: string;
   created_at: number;
   updated_at: number;

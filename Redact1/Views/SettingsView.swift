@@ -23,11 +23,6 @@ struct SettingsView: View {
                                 Text(user.email)
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
-                                if let badge = user.badgeNumber, !badge.isEmpty {
-                                    Text("Badge: \(badge)")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
                             }
 
                             Spacer()

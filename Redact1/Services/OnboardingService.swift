@@ -4,13 +4,11 @@ import Foundation
 
 enum LoginIdentifierType: String, Codable, CaseIterable {
     case email
-    case badgeNumber
     case employeeId
 
     var displayName: String {
         switch self {
         case .email: return "Email"
-        case .badgeNumber: return "Badge"
         case .employeeId: return "Employee ID"
         }
     }
@@ -18,7 +16,6 @@ enum LoginIdentifierType: String, Codable, CaseIterable {
     var placeholder: String {
         switch self {
         case .email: return "you@agency.gov"
-        case .badgeNumber: return "12345"
         case .employeeId: return "EMP-001"
         }
     }
@@ -26,7 +23,6 @@ enum LoginIdentifierType: String, Codable, CaseIterable {
     var icon: String {
         switch self {
         case .email: return "envelope"
-        case .badgeNumber: return "shield"
         case .employeeId: return "person.text.rectangle"
         }
     }
@@ -52,7 +48,7 @@ struct AgencyConfig: Codable, Equatable {
             code: "DEFAULT",
             name: "Default Agency",
             apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
-            loginIdentifiers: [.email, .badgeNumber],
+            loginIdentifiers: [.email],
             primaryColor: "#1E40AF",
             supportEmail: nil,
             supportPhone: nil

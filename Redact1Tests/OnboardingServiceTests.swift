@@ -80,7 +80,7 @@ final class OnboardingServiceTests: XCTestCase {
             "code": "DEMO",
             "name": "Demo Police Department",
             "apiBaseUrl": "https://api.example.com",
-            "loginIdentifiers": ["email", "badgeNumber"],
+            "loginIdentifiers": ["email", "employeeId"],
             "primaryColor": "#1a365d",
             "supportEmail": "support@demo.com",
             "supportPhone": "555-1234"
@@ -92,7 +92,7 @@ final class OnboardingServiceTests: XCTestCase {
         XCTAssertEqual(agency.code, "DEMO")
         XCTAssertEqual(agency.name, "Demo Police Department")
         XCTAssertEqual(agency.apiBaseUrl, "https://api.example.com")
-        XCTAssertEqual(agency.loginIdentifiers, [.email, .badgeNumber])
+        XCTAssertEqual(agency.loginIdentifiers, [.email, .employeeId])
         XCTAssertEqual(agency.primaryColor, "#1a365d")
         XCTAssertEqual(agency.supportEmail, "support@demo.com")
         XCTAssertEqual(agency.supportPhone, "555-1234")
@@ -104,14 +104,14 @@ final class OnboardingServiceTests: XCTestCase {
             "code": "TEST",
             "name": "Test PD",
             "apiBaseUrl": "https://api.example.com",
-            "loginIdentifiers": ["badgeNumber", "email"]
+            "loginIdentifiers": ["employeeId", "email"]
         }
         """.data(using: .utf8)!
 
         let agency = try JSONDecoder().decode(AgencyConfig.self, from: json)
 
         // Primary identifier should be the first one
-        XCTAssertEqual(agency.primaryIdentifier, .badgeNumber)
+        XCTAssertEqual(agency.primaryIdentifier, .employeeId)
     }
 
     func testAgencyConfigDefaultPrimaryIdentifier() throws {
@@ -128,5 +128,76 @@ final class OnboardingServiceTests: XCTestCase {
 
         // Should default to email when empty
         XCTAssertEqual(agency.primaryIdentifier, .email)
+    }
+
+    // MARK: - Email-Only Agency Tests
+
+    func testAgencyConfigWithEmailOnly() throws {
+        let json = """
+        {
+            "code": "EMAIL_ONLY",
+            "name": "Email Only Agency",
+            "apiBaseUrl": "https://api.example.com",
+            "loginIdentifiers": ["email"]
+        }
+        """.data(using: .utf8)!
+
+        let agency = try JSONDecoder().decode(AgencyConfig.self, from: json)
+
+        XCTAssertEqual(agency.loginIdentifiers.count, 1)
+        XCTAssertEqual(agency.loginIdentifiers.first, .email)
+        XCTAssertEqual(agency.primaryIdentifier, .email)
+    }
+
+    func testAgencyConfigDefaultHasEmailOnly() {
+        let defaultConfig = AgencyConfig.default
+
+        // Default agency should only have email login
+        XCTAssertEqual(defaultConfig.loginIdentifiers, [.email])
+        XCTAssertEqual(defaultConfig.primaryIdentifier, .email)
+    }
+
+    func testAgencyConfigDoesNotSupportBadgeNumber() throws {
+        let json = """
+        {
+            "code": "TEST",
+            "name": "Test PD",
+            "apiBaseUrl": "https://api.example.com",
+            "loginIdentifiers": ["email", "employeeId"]
+        }
+        """.data(using: .utf8)!
+
+        let agency = try JSONDecoder().decode(AgencyConfig.self, from: json)
+
+        // Verify no badge number in identifiers
+        for identifier in agency.loginIdentifiers {
+            XCTAssertNotEqual(identifier.rawValue, "badgeNumber")
+        }
+    }
+
+    func testAgencyConfigEquatable() {
+        let config1 = AgencyConfig.default
+        let config2 = AgencyConfig.default
+
+        XCTAssertEqual(config1, config2)
+    }
+
+    // MARK: - Agency Config Optional Fields Tests
+
+    func testAgencyConfigWithoutOptionalFields() throws {
+        let json = """
+        {
+            "code": "MINIMAL",
+            "name": "Minimal Agency",
+            "apiBaseUrl": "https://api.example.com",
+            "loginIdentifiers": ["email"]
+        }
+        """.data(using: .utf8)!
+
+        let agency = try JSONDecoder().decode(AgencyConfig.self, from: json)
+
+        XCTAssertNil(agency.primaryColor)
+        XCTAssertNil(agency.supportEmail)
+        XCTAssertNil(agency.supportPhone)
     }
 }

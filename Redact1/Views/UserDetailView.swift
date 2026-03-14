@@ -102,7 +102,7 @@ struct EditUserView: View {
     @State private var error: String?
 
     private var isAdmin: Bool {
-        authService.currentUser?.role == .admin
+        authService.currentUser?.role == .supervisor
     }
 
     init(user: User, onSave: ((User) -> Void)? = nil) {
@@ -215,10 +215,9 @@ struct EditUserView: View {
     NavigationStack {
         UserDetailView(user: User(
             id: "test-123",
-            email: "officer@pd.local",
-            name: "Officer Smith",
-            badgeNumber: "12345",
-            role: .officer,
+            email: "clerk@pd.local",
+            name: "Clerk Smith",
+            role: .clerk,
             createdAt: 1234567890,
             updatedAt: 1234567890
         ))

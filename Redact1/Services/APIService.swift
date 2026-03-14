@@ -121,15 +121,14 @@ actor APIService {
         return response["users"] ?? []
     }
 
-    func createUser(name: String, email: String, password: String, badgeNumber: String?, role: UserRole = .officer) async throws -> User {
+    func createUser(name: String, email: String, password: String, role: UserRole = .clerk) async throws -> User {
         struct CreateUserBody: Codable {
             let name: String
             let email: String
             let password: String
-            let badge_number: String?
             let role: String
         }
-        let body = try JSONEncoder().encode(CreateUserBody(name: name, email: email, password: password, badge_number: badgeNumber, role: role.rawValue))
+        let body = try JSONEncoder().encode(CreateUserBody(name: name, email: email, password: password, role: role.rawValue))
         let data = try await makeRequest("/api/users", method: "POST", body: body)
         let response = try JSONDecoder().decode([String: User].self, from: data)
         guard let user = response["user"] else {

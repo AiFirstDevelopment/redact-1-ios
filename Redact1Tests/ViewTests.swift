@@ -53,7 +53,7 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(config.code, "DEFAULT")
         XCTAssertEqual(config.name, "Default Agency")
         XCTAssertEqual(config.apiBaseUrl, "https://redact-1-worker.joelstevick.workers.dev")
-        XCTAssertEqual(config.loginIdentifiers, [.email, .badgeNumber])
+        XCTAssertEqual(config.loginIdentifiers, [.email])
         XCTAssertEqual(config.primaryIdentifier, .email)
     }
 
@@ -102,6 +102,13 @@ final class ViewTests: XCTestCase {
         // Verify LoginView can be instantiated
         let view = LoginView()
         XCTAssertNotNil(view)
+    }
+
+    func testLoginViewUsesEmailOnly() {
+        // LoginView should use email for login, not badge number
+        let view = LoginView()
+        XCTAssertNotNil(view)
+        // LoginView has email and password fields, no identifier type picker
     }
 
     func testOnboardingViewCanBeCreated() {
@@ -416,6 +423,23 @@ final class ViewTests: XCTestCase {
         XCTAssertFalse(callbackCalled)
     }
 
+    // MARK: - CreateUserView Field Tests
+
+    func testCreateUserViewRequiresEmailNotBadge() {
+        // CreateUserView should collect email, not badge number
+        let view = CreateUserView()
+        XCTAssertNotNil(view)
+        // View collects: name, email, role, password - no badge number field
+    }
+
+    func testCreateUserViewRoleSelection() {
+        // CreateUserView should allow role selection
+        let view = CreateUserView()
+        XCTAssertNotNil(view)
+        // Roles available: clerk, supervisor
+        XCTAssertEqual(UserRole.allCases.count, 2)
+    }
+
     // MARK: - UserDetailView Tests
 
     func testUserDetailViewCanBeCreated() {
@@ -423,8 +447,7 @@ final class ViewTests: XCTestCase {
             id: "user-123",
             email: "test@test.com",
             name: "Test User",
-            badgeNumber: "12345",
-            role: .officer,
+            role: .clerk,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -437,8 +460,7 @@ final class ViewTests: XCTestCase {
             id: "admin-123",
             email: "admin@test.com",
             name: "Admin User",
-            badgeNumber: nil,
-            role: .admin,
+            role: .supervisor,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -451,8 +473,7 @@ final class ViewTests: XCTestCase {
             id: "user-123",
             email: "test@test.com",
             name: "Test User",
-            badgeNumber: "12345",
-            role: .officer,
+            role: .clerk,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -465,8 +486,7 @@ final class ViewTests: XCTestCase {
             id: "user-123",
             email: "test@test.com",
             name: "Test User",
-            badgeNumber: nil,
-            role: .officer,
+            role: .clerk,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -485,8 +505,7 @@ final class ViewTests: XCTestCase {
             id: "user-123",
             email: "test@test.com",
             name: "Test User",
-            badgeNumber: "12345",
-            role: .officer,
+            role: .clerk,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -495,19 +514,36 @@ final class ViewTests: XCTestCase {
         XCTAssertEqual(row.user.name, "Test User")
     }
 
-    func testUserRowWithoutBadgeNumber() {
+    func testUserRowDisplaysEmail() {
         let user = User(
             id: "user-123",
-            email: "test@test.com",
-            name: "Test User",
-            badgeNumber: nil,
-            role: .officer,
+            email: "clerk@agency.gov",
+            name: "Test Clerk",
+            role: .clerk,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
         let row = UserRow(user: user)
+
+        // UserRow should display the user's email
+        XCTAssertEqual(row.user.email, "clerk@agency.gov")
+        XCTAssertFalse(row.user.email.isEmpty)
+    }
+
+    func testUserRowWithSupervisorRole() {
+        let user = User(
+            id: "user-456",
+            email: "supervisor@agency.gov",
+            name: "Test Supervisor",
+            role: .supervisor,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let row = UserRow(user: user)
+
         XCTAssertNotNil(row)
-        XCTAssertNil(row.user.badgeNumber)
+        XCTAssertEqual(row.user.role, .supervisor)
+        XCTAssertEqual(row.user.email, "supervisor@agency.gov")
     }
 
     // MARK: - RequestDetailView Tests

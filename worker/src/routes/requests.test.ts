@@ -358,7 +358,7 @@ describe('Requests Routes', () => {
   // Request Reassignment Tests (Admin Only)
   // ============================================
 
-  describe('Request Reassignment (admin only)', () => {
+  describe('Request Reassignment (supervisor only)', () => {
     it('should accept created_by in update request body', async () => {
       const requestBody = {
         created_by: 'new-user-456',
@@ -391,7 +391,7 @@ describe('Requests Routes', () => {
         if (sql.includes('SELECT role')) {
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue({ role: 'admin' }),
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
             }),
           };
         }

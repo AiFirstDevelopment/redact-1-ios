@@ -1,13 +1,13 @@
 import Foundation
 
 enum UserRole: String, Codable, CaseIterable {
-    case officer
-    case admin
+    case clerk
+    case supervisor
 
     var displayName: String {
         switch self {
-        case .officer: return "Officer"
-        case .admin: return "Admin"
+        case .clerk: return "Clerk"
+        case .supervisor: return "Supervisor"
         }
     }
 }
@@ -16,14 +16,12 @@ struct User: Codable, Identifiable {
     let id: String
     let email: String
     let name: String
-    let badgeNumber: String?
     let role: UserRole
     let createdAt: Int
     let updatedAt: Int
 
     enum CodingKeys: String, CodingKey {
         case id, email, name, role
-        case badgeNumber = "badge_number"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
@@ -33,17 +31,15 @@ struct User: Codable, Identifiable {
         id = try container.decode(String.self, forKey: .id)
         email = try container.decode(String.self, forKey: .email)
         name = try container.decode(String.self, forKey: .name)
-        badgeNumber = try container.decodeIfPresent(String.self, forKey: .badgeNumber)
-        role = try container.decodeIfPresent(UserRole.self, forKey: .role) ?? .officer
+        role = try container.decodeIfPresent(UserRole.self, forKey: .role) ?? .clerk
         createdAt = try container.decode(Int.self, forKey: .createdAt)
         updatedAt = try container.decode(Int.self, forKey: .updatedAt)
     }
 
-    init(id: String, email: String, name: String, badgeNumber: String?, role: UserRole = .officer, createdAt: Int, updatedAt: Int) {
+    init(id: String, email: String, name: String, role: UserRole = .clerk, createdAt: Int, updatedAt: Int) {
         self.id = id
         self.email = email
         self.name = name
-        self.badgeNumber = badgeNumber
         self.role = role
         self.createdAt = createdAt
         self.updatedAt = updatedAt

@@ -115,15 +115,9 @@ struct UserRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(user.name)
                     .font(.headline)
-                if let badge = user.badgeNumber, !badge.isEmpty {
-                    Text("Badge: \(badge)")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                } else {
-                    Text(user.email)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
+                Text(user.email)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
             }
         }
         .padding(.vertical, 4)
@@ -134,8 +128,7 @@ struct CreateUserView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var name = ""
     @State private var email = ""
-    @State private var badgeNumber = ""
-    @State private var role: UserRole = .officer
+    @State private var role: UserRole = .clerk
     @State private var password = ""
     @State private var confirmPassword = ""
     @State private var isLoading = false
@@ -152,9 +145,6 @@ struct CreateUserView: View {
             Form {
                 Section("User Information") {
                     TextField("Name", text: $name)
-
-                    TextField("Badge Number", text: $badgeNumber)
-                        .autocapitalization(.none)
 
                     TextField("Email", text: $email)
                         .textContentType(.emailAddress)
@@ -223,7 +213,6 @@ struct CreateUserView: View {
                 name: name,
                 email: email,
                 password: password,
-                badgeNumber: badgeNumber.isEmpty ? nil : badgeNumber,
                 role: role
             )
             onSave?(newUser)

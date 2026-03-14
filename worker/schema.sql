@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS agencies (
   code TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   api_base_url TEXT NOT NULL,
-  login_identifiers TEXT NOT NULL, -- JSON array: ["email", "badgeNumber"]
+  login_identifiers TEXT NOT NULL, -- JSON array: ["email", "employeeId"]
   primary_color TEXT,
   support_email TEXT,
   support_phone TEXT,

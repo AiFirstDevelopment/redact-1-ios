@@ -11,7 +11,7 @@ const mockAgency = {
   code: 'DEMO',
   name: 'Demo Police Department',
   api_base_url: 'https://redact-1-worker.joelstevick.workers.dev',
-  login_identifiers: '["email","badgeNumber"]',
+  login_identifiers: '["email"]',
   primary_color: '#1a365d',
   support_email: 'support@demo-pd.local',
   support_phone: '555-123-4567',
@@ -62,7 +62,7 @@ describe('Agencies Routes', () => {
       expect(response.status).toBe(200);
       expect(data.agency.code).toBe('DEMO');
       expect(data.agency.name).toBe('Demo Police Department');
-      expect(data.agency.loginIdentifiers).toEqual(['email', 'badgeNumber']);
+      expect(data.agency.loginIdentifiers).toEqual(['email']);
     });
 
     it('should normalize code to uppercase', async () => {
@@ -186,7 +186,7 @@ describe('Agencies Routes', () => {
         body: JSON.stringify({
           code: 'NEW',
           name: 'New Police Department',
-          loginIdentifiers: ['email', 'badgeNumber'],
+          loginIdentifiers: ['email'],
           primaryColor: '#000000',
         }),
       });

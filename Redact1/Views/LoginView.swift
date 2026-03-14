@@ -4,21 +4,12 @@ struct LoginView: View {
     @EnvironmentObject var authService: AuthService
     @StateObject private var onboardingService = OnboardingService.shared
 
-    @State private var identifier = ""
+    @State private var email = ""
     @State private var password = ""
     @State private var showPassword = false
-    @State private var selectedIdentifierType: LoginIdentifierType?
 
     private var agency: AgencyConfig? {
         onboardingService.currentAgency
-    }
-
-    private var loginIdentifiers: [LoginIdentifierType] {
-        agency?.loginIdentifiers ?? [.email]
-    }
-
-    private var currentType: LoginIdentifierType {
-        selectedIdentifierType ?? agency?.primaryIdentifier ?? .email
     }
 
     var body: some View {
@@ -56,9 +47,6 @@ struct LoginView: View {
                 }
             }
             .navigationBarHidden(true)
-            .onAppear {
-                selectedIdentifierType = agency?.primaryIdentifier
-            }
         }
     }
 
@@ -89,13 +77,8 @@ struct LoginView: View {
 
     private var credentialsSection: some View {
         VStack(spacing: 20) {
-            // Identifier type picker (if multiple types supported)
-            if loginIdentifiers.count > 1 {
-                identifierTypePicker
-            }
-
-            // Identifier field
-            identifierField
+            // Email field
+            emailField
 
             // Password field
             passwordField
@@ -105,49 +88,20 @@ struct LoginView: View {
         }
     }
 
-    private var identifierTypePicker: some View {
-        HStack(spacing: 8) {
-            ForEach(loginIdentifiers, id: \.self) { type in
-                Button(action: {
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        selectedIdentifierType = type
-                        identifier = "" // Clear when switching types
-                    }
-                }) {
-                    HStack(spacing: 6) {
-                        Image(systemName: type.icon)
-                            .font(.caption)
-                        Text(type.displayName)
-                            .font(.caption.weight(.medium))
-                    }
-                    .foregroundStyle(currentType == type ? .white : .white.opacity(0.7))
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(
-                        currentType == type
-                            ? Color.white.opacity(0.25)
-                            : Color.white.opacity(0.1)
-                    )
-                    .clipShape(Capsule())
-                }
-            }
-        }
-    }
-
-    private var identifierField: some View {
+    private var emailField: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(currentType.displayName)
+            Text("Email")
                 .font(.subheadline.weight(.medium))
                 .foregroundStyle(.white.opacity(0.9))
 
             HStack {
-                Image(systemName: currentType.icon)
+                Image(systemName: "envelope")
                     .foregroundStyle(.white.opacity(0.7))
 
-                TextField("", text: $identifier, prompt: Text(currentType.placeholder).foregroundStyle(.white.opacity(0.4)))
-                    .keyboardType(keyboardType(for: currentType))
-                    .textContentType(contentType(for: currentType))
-                    .autocapitalization(currentType == .email ? .none : .allCharacters)
+                TextField("", text: $email, prompt: Text("you@agency.gov").foregroundStyle(.white.opacity(0.4)))
+                    .keyboardType(.emailAddress)
+                    .textContentType(.emailAddress)
+                    .autocapitalization(.none)
                     .autocorrectionDisabled()
                     .foregroundStyle(.white)
             }
@@ -235,9 +189,7 @@ struct LoginView: View {
         VStack(spacing: 4) {
             Text("Development Mode")
                 .font(.caption.weight(.medium))
-            Text("Use: officer@pd.local / test-password")
-                .font(.caption2)
-            Text("Or badge: 12345 / test-password")
+            Text("Use: clerk@pd.local / test-password")
                 .font(.caption2)
         }
         .foregroundStyle(.white.opacity(0.6))
@@ -247,27 +199,12 @@ struct LoginView: View {
     // MARK: - Helpers
 
     private var canSubmit: Bool {
-        !identifier.isEmpty && !password.isEmpty
+        !email.isEmpty && !password.isEmpty
     }
 
     private func performLogin() {
         Task {
-            await authService.login(identifier: identifier, password: password, identifierType: currentType)
-        }
-    }
-
-    private func keyboardType(for type: LoginIdentifierType) -> UIKeyboardType {
-        switch type {
-        case .email: return .emailAddress
-        case .badgeNumber: return .numberPad
-        case .employeeId: return .default
-        }
-    }
-
-    private func contentType(for type: LoginIdentifierType) -> UITextContentType? {
-        switch type {
-        case .email: return .emailAddress
-        default: return nil
+            await authService.login(email: email, password: password)
         }
     }
 }

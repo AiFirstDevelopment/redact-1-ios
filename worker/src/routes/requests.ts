@@ -2,12 +2,12 @@ import { Env, Request as RequestModel, CreateRequestBody, UpdateRequestBody, Use
 import { json, error, generateId, now } from '../utils';
 import { authenticate, isAuthContext } from '../middleware/auth';
 
-// Helper to check if user is admin
-async function isAdmin(userId: string, env: Env): Promise<boolean> {
+// Helper to check if user is supervisor
+async function isSupervisor(userId: string, env: Env): Promise<boolean> {
   const user = await env.DB.prepare('SELECT role FROM users WHERE id = ?')
     .bind(userId)
     .first<{ role: string }>();
-  return user?.role === 'admin';
+  return user?.role === 'supervisor';
 }
 
 export async function handleListRequests(request: Request, env: Env): Promise<Response> {
@@ -150,10 +150,10 @@ export async function handleUpdateRequest(request: Request, env: Env, id: string
       params.push(body.status);
     }
 
-    // Only admins can reassign requests
+    // Only supervisors can reassign requests
     if (body.created_by !== undefined) {
-      if (!await isAdmin(auth.user.id, env)) {
-        return error('Only admins can reassign requests', 403);
+      if (!await isSupervisor(auth.user.id, env)) {
+        return error('Only supervisors can reassign requests', 403);
       }
       // Verify the target user exists
       const targetUser = await env.DB.prepare('SELECT id FROM users WHERE id = ?')

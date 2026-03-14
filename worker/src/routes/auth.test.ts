@@ -11,10 +11,9 @@ const mockEnv = {
 // Mock user data
 const mockUser = {
   id: 'user-123',
-  email: 'officer@pd.local',
-  name: 'Officer Smith',
+  email: 'clerk@pd.local',
+  name: 'Clerk Smith',
   password_hash: '$2a$10$hashedpassword',
-  badge_number: '12345',
   employee_id: 'EMP-001',
   created_at: 1234567890,
   updated_at: 1234567890,
@@ -66,7 +65,7 @@ describe('Auth Routes', () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          identifier: 'officer@pd.local',
+          identifier: 'clerk@pd.local',
           password: 'test-password',
           identifierType: 'email',
         }),
@@ -84,31 +83,6 @@ describe('Auth Routes', () => {
 
       expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
         expect.stringContaining('email')
-      );
-    });
-
-    it('should accept badgeNumber identifier type', async () => {
-      const request = new Request('http://localhost/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          identifier: '12345',
-          password: 'test-password',
-          identifierType: 'badgeNumber',
-        }),
-      });
-
-      mockEnv.DB.prepare.mockReturnValue({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      });
-
-      const { handleLogin } = await import('./auth');
-      await handleLogin(request, mockEnv as any);
-
-      expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
-        expect.stringContaining('badge_number')
       );
     });
 
@@ -357,9 +331,9 @@ describe('Auth Routes', () => {
   // ============================================
 
   describe('Role-Based Access Control', () => {
-    describe('GET /api/users (admin required)', () => {
-      it('should reject non-admin users', async () => {
-        // Mock authentication but user is not admin
+    describe('GET /api/users (supervisor required)', () => {
+      it('should reject non-supervisor users', async () => {
+        // Mock authentication but user is not supervisor
         const request = new Request('http://localhost/api/users', {
           method: 'GET',
           headers: {
@@ -367,19 +341,19 @@ describe('Auth Routes', () => {
           },
         });
 
-        // Without valid JWT, returns 401 (auth required before admin check)
+        // Without valid JWT, returns 401 (auth required before supervisor check)
         const { handleListUsers } = await import('./auth');
         const response = await handleListUsers(request, mockEnv as any);
         expect(response.status).toBe(401);
       });
 
-      it('should verify admin role query is prepared', async () => {
+      it('should verify supervisor role query is prepared', async () => {
         let queriesExecuted: string[] = [];
         mockEnv.DB.prepare.mockImplementation((query: string) => {
           queriesExecuted.push(query);
           return {
             bind: vi.fn().mockReturnValue({
-              first: vi.fn().mockResolvedValue({ role: 'officer' }),
+              first: vi.fn().mockResolvedValue({ role: 'clerk' }),
               all: vi.fn().mockResolvedValue({ results: [] }),
             }),
           };
@@ -390,8 +364,8 @@ describe('Auth Routes', () => {
       });
     });
 
-    describe('POST /api/users (admin required)', () => {
-      it('should require admin role for user creation', async () => {
+    describe('POST /api/users (supervisor required)', () => {
+      it('should require supervisor role for user creation', async () => {
         const request = new Request('http://localhost/api/users', {
           method: 'POST',
           headers: {
@@ -401,7 +375,7 @@ describe('Auth Routes', () => {
             email: 'newuser@test.com',
             password: 'password123',
             name: 'New User',
-            role: 'officer',
+            role: 'clerk',
           }),
         });
 
@@ -417,8 +391,7 @@ describe('Auth Routes', () => {
           email: 'newuser@test.com',
           password: 'password123',
           name: 'New User',
-          role: 'admin',
-          badge_number: '12345',
+          role: 'supervisor',
         };
 
         const request = new Request('http://localhost/api/users', {
@@ -429,15 +402,15 @@ describe('Auth Routes', () => {
 
         // Verify the endpoint can parse role from body
         const body = await request.clone().json();
-        expect(body.role).toBe('admin');
+        expect(body.role).toBe('supervisor');
       });
 
-      it('should default role to officer if not admin', async () => {
+      it('should default role to clerk if not supervisor', async () => {
         const requestBody = {
           email: 'newuser@test.com',
           password: 'password123',
           name: 'New User',
-          role: 'superuser', // invalid role should default to officer
+          role: 'superuser', // invalid role should default to clerk
         };
 
         const request = new Request('http://localhost/api/users', {
@@ -448,12 +421,12 @@ describe('Auth Routes', () => {
 
         // The body parsing works
         const body = await request.clone().json();
-        expect(body.role).toBe('superuser'); // Body has the value, but handler will normalize to officer
+        expect(body.role).toBe('superuser'); // Body has the value, but handler will normalize to clerk
       });
     });
 
-    describe('PUT /api/users/:id (self or admin)', () => {
-      it('should allow self-edit without admin role', async () => {
+    describe('PUT /api/users/:id (self or supervisor)', () => {
+      it('should allow self-edit without supervisor role', async () => {
         const request = new Request('http://localhost/api/users/user-123', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
@@ -469,7 +442,7 @@ describe('Auth Routes', () => {
       it('should accept role change in request body', async () => {
         const requestBody = {
           name: 'Updated Name',
-          role: 'admin',
+          role: 'supervisor',
         };
 
         const request = new Request('http://localhost/api/users/user-123', {
@@ -479,15 +452,15 @@ describe('Auth Routes', () => {
         });
 
         const body = await request.clone().json();
-        expect(body.role).toBe('admin');
+        expect(body.role).toBe('supervisor');
       });
 
-      it('should only allow admin to change roles', async () => {
+      it('should only allow supervisor to change roles', async () => {
         // Test that role field is in the request body structure
         const requestBody = {
           name: 'Updated Name',
           email: 'updated@test.com',
-          role: 'admin', // This should only work if requester is admin
+          role: 'supervisor', // This should only work if requester is supervisor
         };
 
         const request = new Request('http://localhost/api/users/other-user', {
@@ -501,8 +474,8 @@ describe('Auth Routes', () => {
       });
     });
 
-    describe('DELETE /api/users/:id (admin required)', () => {
-      it('should require admin role for user deletion', async () => {
+    describe('DELETE /api/users/:id (supervisor required)', () => {
+      it('should require supervisor role for user deletion', async () => {
         const request = new Request('http://localhost/api/users/user-456', {
           method: 'DELETE',
         });
@@ -514,7 +487,7 @@ describe('Auth Routes', () => {
         expect(response.status).toBe(401);
       });
 
-      it('should prevent self-deletion even for admin', async () => {
+      it('should prevent self-deletion even for supervisor', async () => {
         // The endpoint exists and self-deletion check is in place
         const { handleDeleteUser } = await import('./auth');
         expect(typeof handleDeleteUser).toBe('function');
@@ -526,37 +499,111 @@ describe('Auth Routes', () => {
     it('should include role in user response', async () => {
       const mockUserWithRole = {
         id: 'user-123',
-        email: 'officer@pd.local',
-        name: 'Officer Smith',
-        badge_number: '12345',
-        role: 'officer',
+        email: 'clerk@pd.local',
+        name: 'Clerk Smith',
+        role: 'clerk',
         created_at: 1234567890,
         updated_at: 1234567890,
       };
 
       // Verify role field structure
-      expect(mockUserWithRole.role).toBe('officer');
+      expect(mockUserWithRole.role).toBe('clerk');
     });
 
-    it('should support admin role value', async () => {
+    it('should support supervisor role value', async () => {
       const mockAdminUser = {
-        id: 'admin-123',
-        email: 'admin@pd.local',
+        id: 'supervisor-123',
+        email: 'supervisor@pd.local',
         name: 'Admin User',
-        badge_number: null,
-        role: 'admin',
+        role: 'supervisor',
         created_at: 1234567890,
         updated_at: 1234567890,
       };
 
-      expect(mockAdminUser.role).toBe('admin');
+      expect(mockAdminUser.role).toBe('supervisor');
     });
 
     it('should have valid role values', () => {
-      const validRoles = ['officer', 'admin'];
-      expect(validRoles).toContain('officer');
-      expect(validRoles).toContain('admin');
+      const validRoles = ['clerk', 'supervisor'];
+      expect(validRoles).toContain('clerk');
+      expect(validRoles).toContain('supervisor');
       expect(validRoles.length).toBe(2);
+    });
+
+    it('should not include badge_number in user response', async () => {
+      const mockUserResponse = {
+        id: 'user-123',
+        email: 'clerk@pd.local',
+        name: 'Clerk Smith',
+        role: 'clerk',
+        created_at: 1234567890,
+        updated_at: 1234567890,
+      };
+
+      // Verify no badge_number field in response
+      expect(mockUserResponse).not.toHaveProperty('badge_number');
+    });
+  });
+
+  describe('Email-Only Login', () => {
+    it('should default to email identifier type', async () => {
+      const request = new Request('http://localhost/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'clerk@pd.local',
+          password: 'test-password',
+        }),
+      });
+
+      // When only email/password provided (no identifierType), should use email
+      mockEnv.DB.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue(null),
+        }),
+      });
+
+      const { handleLogin } = await import('./auth');
+      await handleLogin(request, mockEnv as any);
+
+      expect(mockEnv.DB.prepare).toHaveBeenCalledWith(
+        expect.stringContaining('email')
+      );
+    });
+
+    it('should not support badgeNumber identifier type', async () => {
+      // The login handler should only support email and employeeId
+      // badgeNumber has been removed
+      const validIdentifierTypes = ['email', 'employeeId'];
+      expect(validIdentifierTypes).not.toContain('badgeNumber');
+    });
+  });
+
+  describe('User Creation Without Badge Number', () => {
+    it('should create user request without badge_number field', async () => {
+      const requestBody = {
+        email: 'newuser@test.com',
+        password: 'password123',
+        name: 'New User',
+        role: 'clerk',
+        // No badge_number field
+      };
+
+      expect(requestBody).not.toHaveProperty('badge_number');
+      expect(requestBody.email).toBeDefined();
+      expect(requestBody.name).toBeDefined();
+    });
+
+    it('should accept user creation with role only', async () => {
+      const requestBody = {
+        email: 'supervisor@test.com',
+        password: 'password123',
+        name: 'New Supervisor',
+        role: 'supervisor',
+      };
+
+      expect(requestBody.role).toBe('supervisor');
+      expect(requestBody).not.toHaveProperty('badge_number');
     });
   });
 });

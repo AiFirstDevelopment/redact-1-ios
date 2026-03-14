@@ -63,15 +63,6 @@ final class AuthServiceTests: XCTestCase {
         XCTAssertEqual(identifierType.placeholder, "you@agency.gov")
     }
 
-    func testLoginIdentifierTypeBadgeNumber() {
-        let identifierType = LoginIdentifierType.badgeNumber
-
-        XCTAssertEqual(identifierType.rawValue, "badgeNumber")
-        XCTAssertEqual(identifierType.displayName, "Badge")
-        XCTAssertEqual(identifierType.icon, "shield")
-        XCTAssertEqual(identifierType.placeholder, "12345")
-    }
-
     func testLoginIdentifierTypeEmployeeId() {
         let identifierType = LoginIdentifierType.employeeId
 
@@ -84,9 +75,50 @@ final class AuthServiceTests: XCTestCase {
     func testAllLoginIdentifierTypes() {
         let types = LoginIdentifierType.allCases
 
-        XCTAssertEqual(types.count, 3)
+        XCTAssertEqual(types.count, 2)
         XCTAssertTrue(types.contains(.email))
-        XCTAssertTrue(types.contains(.badgeNumber))
         XCTAssertTrue(types.contains(.employeeId))
+    }
+
+    // MARK: - Email Login Tests
+
+    func testLoginWithEmailMethod() async {
+        // Test the convenience email login method
+        await authService.login(email: "test@test.com", password: "password123")
+
+        // Without a real backend, this will fail but verifies the method exists
+        XCTAssertFalse(authService.isAuthenticated)
+    }
+
+    func testLoginWithEmptyEmailFails() async {
+        await authService.login(email: "", password: "password123")
+
+        XCTAssertFalse(authService.isAuthenticated)
+        XCTAssertNotNil(authService.error)
+    }
+
+    func testLoginWithEmptyPasswordViaEmailMethodFails() async {
+        await authService.login(email: "test@test.com", password: "")
+
+        XCTAssertFalse(authService.isAuthenticated)
+        XCTAssertNotNil(authService.error)
+    }
+
+    // MARK: - No Badge Number Tests
+
+    func testLoginIdentifierTypesDoNotIncludeBadgeNumber() {
+        let types = LoginIdentifierType.allCases
+
+        // Verify badgeNumber is not in the available identifier types
+        for type in types {
+            XCTAssertNotEqual(type.rawValue, "badgeNumber")
+        }
+    }
+
+    func testLoginIdentifierTypeEmailIsDefault() {
+        // Email should be the primary login method
+        let emailType = LoginIdentifierType.email
+        XCTAssertEqual(emailType.displayName, "Email")
+        XCTAssertEqual(emailType.icon, "envelope")
     }
 }

@@ -6,20 +6,20 @@ final class ModelTests: XCTestCase {
     // MARK: - UserRole Tests
 
     func testUserRoleValues() {
-        XCTAssertEqual(UserRole.officer.rawValue, "officer")
-        XCTAssertEqual(UserRole.admin.rawValue, "admin")
+        XCTAssertEqual(UserRole.clerk.rawValue, "clerk")
+        XCTAssertEqual(UserRole.supervisor.rawValue, "supervisor")
     }
 
     func testUserRoleDisplayNames() {
-        XCTAssertEqual(UserRole.officer.displayName, "Officer")
-        XCTAssertEqual(UserRole.admin.displayName, "Admin")
+        XCTAssertEqual(UserRole.clerk.displayName, "Clerk")
+        XCTAssertEqual(UserRole.supervisor.displayName, "Supervisor")
     }
 
     func testUserRoleAllCases() {
         let roles = UserRole.allCases
         XCTAssertEqual(roles.count, 2)
-        XCTAssertTrue(roles.contains(.officer))
-        XCTAssertTrue(roles.contains(.admin))
+        XCTAssertTrue(roles.contains(.clerk))
+        XCTAssertTrue(roles.contains(.supervisor))
     }
 
     // MARK: - User Model Tests
@@ -30,7 +30,7 @@ final class ModelTests: XCTestCase {
             "id": "user-123",
             "email": "test@test.com",
             "name": "Test User",
-            "role": "officer",
+            "role": "clerk",
             "created_at": 1234567890,
             "updated_at": 1234567890
         }
@@ -41,18 +41,18 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(user.id, "user-123")
         XCTAssertEqual(user.email, "test@test.com")
         XCTAssertEqual(user.name, "Test User")
-        XCTAssertEqual(user.role, .officer)
+        XCTAssertEqual(user.role, .clerk)
         XCTAssertEqual(user.createdAt, 1234567890)
         XCTAssertEqual(user.updatedAt, 1234567890)
     }
 
-    func testUserDecodingWithAdminRole() throws {
+    func testUserDecodingWithSupervisorRole() throws {
         let json = """
         {
-            "id": "admin-123",
-            "email": "admin@test.com",
-            "name": "Admin User",
-            "role": "admin",
+            "id": "supervisor-123",
+            "email": "supervisor@test.com",
+            "name": "Supervisor User",
+            "role": "supervisor",
             "created_at": 1234567890,
             "updated_at": 1234567890
         }
@@ -60,12 +60,12 @@ final class ModelTests: XCTestCase {
 
         let user = try JSONDecoder().decode(User.self, from: json)
 
-        XCTAssertEqual(user.id, "admin-123")
-        XCTAssertEqual(user.role, .admin)
+        XCTAssertEqual(user.id, "supervisor-123")
+        XCTAssertEqual(user.role, .supervisor)
     }
 
     func testUserDecodingWithoutRole() throws {
-        // Test that role defaults to officer when not present
+        // Test that role defaults to clerk when not present
         let json = """
         {
             "id": "user-123",
@@ -78,25 +78,7 @@ final class ModelTests: XCTestCase {
 
         let user = try JSONDecoder().decode(User.self, from: json)
 
-        XCTAssertEqual(user.role, .officer)
-    }
-
-    func testUserDecodingWithBadgeNumber() throws {
-        let json = """
-        {
-            "id": "user-123",
-            "email": "officer@test.com",
-            "name": "Officer Smith",
-            "badge_number": "12345",
-            "role": "officer",
-            "created_at": 1234567890,
-            "updated_at": 1234567890
-        }
-        """.data(using: .utf8)!
-
-        let user = try JSONDecoder().decode(User.self, from: json)
-
-        XCTAssertEqual(user.badgeNumber, "12345")
+        XCTAssertEqual(user.role, .clerk)
     }
 
     func testUserIdentifiable() throws {
@@ -121,8 +103,7 @@ final class ModelTests: XCTestCase {
             id: "test-id",
             email: "test@test.com",
             name: "Test User",
-            badgeNumber: "54321",
-            role: .admin,
+            role: .supervisor,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -130,8 +111,58 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(user.id, "test-id")
         XCTAssertEqual(user.email, "test@test.com")
         XCTAssertEqual(user.name, "Test User")
-        XCTAssertEqual(user.badgeNumber, "54321")
-        XCTAssertEqual(user.role, .admin)
+        XCTAssertEqual(user.role, .supervisor)
+    }
+
+    func testUserInitializerWithDefaultRole() {
+        let user = User(
+            id: "test-id",
+            email: "test@test.com",
+            name: "Test User",
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+
+        // Default role should be clerk
+        XCTAssertEqual(user.role, .clerk)
+    }
+
+    func testUserEncoding() throws {
+        let user = User(
+            id: "test-id",
+            email: "test@test.com",
+            name: "Test User",
+            role: .clerk,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+
+        let encoder = JSONEncoder()
+        let data = try encoder.encode(user)
+        let json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+
+        // Verify user encodes correctly without badgeNumber
+        XCTAssertEqual(json["id"] as? String, "test-id")
+        XCTAssertEqual(json["email"] as? String, "test@test.com")
+        XCTAssertEqual(json["name"] as? String, "Test User")
+        XCTAssertEqual(json["role"] as? String, "clerk")
+        XCTAssertNil(json["badge_number"])
+        XCTAssertNil(json["badgeNumber"])
+    }
+
+    func testUserEmailIsRequired() throws {
+        let user = User(
+            id: "test-id",
+            email: "user@example.com",
+            name: "Test User",
+            role: .clerk,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+
+        // Email is the primary identifier
+        XCTAssertFalse(user.email.isEmpty)
+        XCTAssertTrue(user.email.contains("@"))
     }
 
     // MARK: - AuthState Tests

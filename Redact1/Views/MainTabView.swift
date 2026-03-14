@@ -4,7 +4,7 @@ struct MainTabView: View {
     @EnvironmentObject var authService: AuthService
 
     private var isAdmin: Bool {
-        authService.currentUser?.role == .admin
+        authService.currentUser?.role == .supervisor
     }
 
     var body: some View {
