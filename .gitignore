@@ -54,3 +54,4 @@ worker/.dev.vars
 # Test output
 test-results/
 playwright-report/
+.wrangler/

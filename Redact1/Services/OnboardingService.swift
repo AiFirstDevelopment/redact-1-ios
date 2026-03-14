@@ -1,20 +1,58 @@
 import Foundation
 
+// MARK: - Login Identifier Types
+
+enum LoginIdentifierType: String, Codable, CaseIterable {
+    case email
+    case badgeNumber
+    case employeeId
+
+    var displayName: String {
+        switch self {
+        case .email: return "Email"
+        case .badgeNumber: return "Badge"
+        case .employeeId: return "Employee ID"
+        }
+    }
+
+    var placeholder: String {
+        switch self {
+        case .email: return "you@agency.gov"
+        case .badgeNumber: return "12345"
+        case .employeeId: return "EMP-001"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .email: return "envelope"
+        case .badgeNumber: return "shield"
+        case .employeeId: return "person.text.rectangle"
+        }
+    }
+}
+
 // MARK: - Agency Configuration
 
 struct AgencyConfig: Codable, Equatable {
     let code: String
     let name: String
     let apiBaseUrl: String
+    let loginIdentifiers: [LoginIdentifierType]
     let primaryColor: String?
     let supportEmail: String?
     let supportPhone: String?
+
+    var primaryIdentifier: LoginIdentifierType {
+        loginIdentifiers.first ?? .email
+    }
 
     static var `default`: AgencyConfig {
         AgencyConfig(
             code: "DEFAULT",
             name: "Default Agency",
             apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
+            loginIdentifiers: [.email, .badgeNumber],
             primaryColor: "#1E40AF",
             supportEmail: nil,
             supportPhone: nil
@@ -100,6 +138,7 @@ final class OnboardingService: ObservableObject {
                 code: "SPRINGFIELD",
                 name: "Springfield Police Department",
                 apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
+                loginIdentifiers: [.badgeNumber, .email],
                 primaryColor: "#1E40AF",
                 supportEmail: "records@springfieldpd.gov",
                 supportPhone: "555-123-4567"
@@ -110,6 +149,7 @@ final class OnboardingService: ObservableObject {
                 code: "RIVERSIDE",
                 name: "Riverside Police Department",
                 apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
+                loginIdentifiers: [.employeeId, .badgeNumber],
                 primaryColor: "#059669",
                 supportEmail: "foia@riversidepd.org",
                 supportPhone: "555-987-6543"
@@ -120,6 +160,7 @@ final class OnboardingService: ObservableObject {
                 code: "METRO",
                 name: "Metropolitan Police",
                 apiBaseUrl: "https://redact-1-worker.joelstevick.workers.dev",
+                loginIdentifiers: [.email],
                 primaryColor: "#7C3AED",
                 supportEmail: "records@metro.gov",
                 supportPhone: "555-456-7890"
