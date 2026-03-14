@@ -1,12 +1,17 @@
 import SwiftUI
 
 struct RequestListView: View {
+    @EnvironmentObject var authService: AuthService
     @State private var requests: [RecordsRequest] = []
     @State private var isLoading = false
     @State private var error: String?
     @State private var searchText = ""
     @State private var selectedStatus: RequestStatus?
     @State private var showingCreateSheet = false
+
+    private var isSupervisor: Bool {
+        authService.currentUser?.role == .supervisor
+    }
 
     var filteredRequests: [RecordsRequest] {
         var result = requests
@@ -67,8 +72,15 @@ struct RequestListView: View {
         }
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button(action: { showingCreateSheet = true }) {
-                    Image(systemName: "plus")
+                HStack(spacing: 16) {
+                    if isSupervisor {
+                        NavigationLink(destination: ArchivedRequestsView()) {
+                            Image(systemName: "archivebox")
+                        }
+                    }
+                    Button(action: { showingCreateSheet = true }) {
+                        Image(systemName: "plus")
+                    }
                 }
             }
 

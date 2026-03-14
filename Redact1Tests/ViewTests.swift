@@ -35,6 +35,7 @@ final class ViewTests: XCTestCase {
             notes: "Some notes",
             status: .new,
             createdBy: "user-123",
+            archivedAt: nil,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -68,6 +69,7 @@ final class ViewTests: XCTestCase {
             notes: nil,
             status: .new,
             createdBy: "user-123",
+            archivedAt: nil,
             createdAt: 1704067200,
             updatedAt: 1704067200
         )
@@ -161,6 +163,7 @@ final class ViewTests: XCTestCase {
             notes: nil,
             status: .inProgress,
             createdBy: "user-123",
+            archivedAt: nil,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -564,6 +567,7 @@ final class ViewTests: XCTestCase {
             notes: nil,
             status: .new,
             createdBy: "user-123",
+            archivedAt: nil,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -580,6 +584,7 @@ final class ViewTests: XCTestCase {
             notes: nil,
             status: .inProgress,
             createdBy: "user-123",
+            archivedAt: nil,
             createdAt: 1234567890,
             updatedAt: 1234567890
         )
@@ -605,5 +610,84 @@ final class ViewTests: XCTestCase {
     func testSettingsViewHasProfileEditCapability() {
         let view = SettingsView()
         XCTAssertNotNil(view)
+    }
+
+    // MARK: - ArchivedRequestsView Tests
+
+    func testArchivedRequestsViewCanBeCreated() {
+        let view = ArchivedRequestsView()
+        XCTAssertNotNil(view)
+    }
+
+    func testArchivedRequestRowCanBeCreated() {
+        let request = RecordsRequest(
+            id: "req-123",
+            requestNumber: "FOIA-2024-001",
+            title: "Archived Request",
+            requestDate: 1234567890,
+            notes: nil,
+            status: .completed,
+            createdBy: "user-123",
+            archivedAt: 1234567900,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let row = ArchivedRequestRow(request: request)
+        XCTAssertNotNil(row)
+    }
+
+    func testArchivedRequestRowWithCallback() {
+        let request = RecordsRequest(
+            id: "req-123",
+            requestNumber: "FOIA-2024-001",
+            title: "Archived Request",
+            requestDate: 1234567890,
+            notes: nil,
+            status: .completed,
+            createdBy: "user-123",
+            archivedAt: 1234567900,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        var unarchivedRequest: RecordsRequest?
+        let row = ArchivedRequestRow(request: request) { newRequest in
+            unarchivedRequest = newRequest
+        }
+        XCTAssertNotNil(row)
+        XCTAssertNil(unarchivedRequest) // Callback not called on init
+    }
+
+    // MARK: - RecordsRequest isArchived Tests
+
+    func testRecordsRequestIsArchivedWhenArchivedAtIsSet() {
+        let request = RecordsRequest(
+            id: "req-123",
+            requestNumber: "FOIA-2024-001",
+            title: "Archived Request",
+            requestDate: 1234567890,
+            notes: nil,
+            status: .completed,
+            createdBy: "user-123",
+            archivedAt: 1234567900,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        XCTAssertTrue(request.isArchived)
+    }
+
+    func testRecordsRequestIsNotArchivedWhenArchivedAtIsNil() {
+        let request = RecordsRequest(
+            id: "req-123",
+            requestNumber: "FOIA-2024-001",
+            title: "Active Request",
+            requestDate: 1234567890,
+            notes: nil,
+            status: .new,
+            createdBy: "user-123",
+            archivedAt: nil,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        XCTAssertFalse(request.isArchived)
     }
 }

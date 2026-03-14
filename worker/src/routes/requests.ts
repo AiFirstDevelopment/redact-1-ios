@@ -20,7 +20,7 @@ export async function handleListRequests(request: Request, env: Env): Promise<Re
 
   let query = 'SELECT * FROM requests';
   const params: string[] = [];
-  const conditions: string[] = [];
+  const conditions: string[] = ['archived_at IS NULL'];
 
   if (status) {
     conditions.push('status = ?');
@@ -32,9 +32,7 @@ export async function handleListRequests(request: Request, env: Env): Promise<Re
     params.push(`%${search}%`, `%${search}%`);
   }
 
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
+  query += ' WHERE ' + conditions.join(' AND ');
 
   query += ' ORDER BY created_at DESC';
 
@@ -187,6 +185,108 @@ export async function handleUpdateRequest(request: Request, env: Env, id: string
   } catch (e) {
     return error('Invalid request body');
   }
+}
+
+export async function handleArchiveRequest(request: Request, env: Env, id: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  // Only supervisors can archive requests
+  if (!await isSupervisor(auth.user.id, env)) {
+    return error('Only supervisors can archive requests', 403);
+  }
+
+  const existing = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
+    .bind(id)
+    .first<RequestModel>();
+
+  if (!existing) {
+    return error('Request not found', 404);
+  }
+
+  const timestamp = now();
+
+  await env.DB.prepare('UPDATE requests SET archived_at = ?, updated_at = ? WHERE id = ?')
+    .bind(timestamp, timestamp, id)
+    .run();
+
+  // Audit log
+  await env.DB.prepare(
+    'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+    .bind(generateId(), auth.user.id, 'archive', 'request', id, timestamp)
+    .run();
+
+  const updated = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
+    .bind(id)
+    .first<RequestModel>();
+
+  return json({ request: updated });
+}
+
+export async function handleUnarchiveRequest(request: Request, env: Env, id: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  // Only supervisors can unarchive requests
+  if (!await isSupervisor(auth.user.id, env)) {
+    return error('Only supervisors can unarchive requests', 403);
+  }
+
+  const existing = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
+    .bind(id)
+    .first<RequestModel>();
+
+  if (!existing) {
+    return error('Request not found', 404);
+  }
+
+  const timestamp = now();
+
+  await env.DB.prepare('UPDATE requests SET archived_at = NULL, updated_at = ? WHERE id = ?')
+    .bind(timestamp, id)
+    .run();
+
+  // Audit log
+  await env.DB.prepare(
+    'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+    .bind(generateId(), auth.user.id, 'unarchive', 'request', id, timestamp)
+    .run();
+
+  const updated = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
+    .bind(id)
+    .first<RequestModel>();
+
+  return json({ request: updated });
+}
+
+export async function handleListArchivedRequests(request: Request, env: Env): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  // Only supervisors can view archived requests
+  if (!await isSupervisor(auth.user.id, env)) {
+    return error('Only supervisors can view archived requests', 403);
+  }
+
+  const url = new URL(request.url);
+  const search = url.searchParams.get('search');
+
+  let query = 'SELECT * FROM requests WHERE archived_at IS NOT NULL';
+  const params: string[] = [];
+
+  if (search) {
+    query += ' AND (title LIKE ? OR request_number LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  query += ' ORDER BY archived_at DESC';
+
+  const stmt = env.DB.prepare(query);
+  const result = await (params.length > 0 ? stmt.bind(...params) : stmt).all<RequestModel>();
+
+  return json({ requests: result.results });
 }
 
 export async function handleDeleteRequest(request: Request, env: Env, id: string): Promise<Response> {

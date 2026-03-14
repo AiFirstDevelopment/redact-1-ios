@@ -12,6 +12,8 @@ struct RequestDetailView: View {
     @State private var showingExportSheet = false
     @State private var showingStatusPicker = false
     @State private var showingReassignSheet = false
+    @State private var showingArchiveConfirmation = false
+    @State private var isArchiving = false
 
     private var isAdmin: Bool {
         authService.currentUser?.role == .supervisor
@@ -87,6 +89,13 @@ struct RequestDetailView: View {
                         Label("Export Redacted Files", systemImage: "square.and.arrow.up")
                     }
                     .disabled(files.filter { $0.status == .reviewed }.isEmpty)
+
+                    if isAdmin {
+                        Button(action: { showingArchiveConfirmation = true }) {
+                            Label("Archive Request", systemImage: "archivebox")
+                        }
+                        .disabled(isArchiving)
+                    }
                 }
             }
         }
@@ -122,6 +131,28 @@ struct RequestDetailView: View {
                 }
             }
         }
+        .confirmationDialog("Archive Request", isPresented: $showingArchiveConfirmation, titleVisibility: .visible) {
+            Button("Archive", role: .destructive) {
+                Task { await archiveRequest() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This will move the request to the archive. Supervisors can restore it later.")
+        }
+    }
+
+    private func archiveRequest() async {
+        guard let currentRequest = request else { return }
+
+        isArchiving = true
+        do {
+            _ = try await APIService.shared.archiveRequest(currentRequest.id)
+            // Navigate back after archiving
+            request = nil
+        } catch {
+            self.error = error.localizedDescription
+        }
+        isArchiving = false
     }
 
     private func updateStatus(_ newStatus: RequestStatus) async {

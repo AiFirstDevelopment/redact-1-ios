@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS requests (
   notes TEXT,
   status TEXT NOT NULL CHECK (status IN ('new', 'in_progress', 'completed')),
   created_by TEXT NOT NULL REFERENCES users(id),
+  archived_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

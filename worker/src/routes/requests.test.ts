@@ -501,4 +501,375 @@ describe('Requests Routes', () => {
       expect(statusUpdated).toBe('in_progress');
     });
   });
+
+  // ============================================
+  // Archive/Unarchive Tests (Supervisor Only)
+  // ============================================
+
+  describe('POST /api/requests/:id/archive', () => {
+    it('should return 403 for non-supervisor users', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'clerk' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(mockRequest),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/req-123/archive', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleArchiveRequest } = await import('./requests');
+      const response = await handleArchiveRequest(request, mockEnv as any, 'req-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Only supervisors can archive requests');
+    });
+
+    it('should return 404 for non-existent request', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/nonexistent/archive', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleArchiveRequest } = await import('./requests');
+      const response = await handleArchiveRequest(request, mockEnv as any, 'nonexistent');
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Request not found');
+    });
+
+    it('should archive request successfully for supervisor', async () => {
+      let archiveTimestamp: number | null = null;
+      const archivedRequest = { ...mockRequest, archived_at: 1234567890 };
+
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        if (sql.includes('UPDATE requests SET archived_at')) {
+          return {
+            bind: vi.fn((...args) => {
+              archiveTimestamp = args[0];
+              return { run: vi.fn().mockResolvedValue({}) };
+            }),
+          };
+        }
+        if (sql.includes('INSERT INTO audit_logs')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(archivedRequest),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/req-123/archive', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleArchiveRequest } = await import('./requests');
+      const response = await handleArchiveRequest(request, mockEnv as any, 'req-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.request.archived_at).toBeDefined();
+      expect(archiveTimestamp).not.toBeNull();
+    });
+  });
+
+  describe('POST /api/requests/:id/unarchive', () => {
+    it('should return 403 for non-supervisor users', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'clerk' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(mockRequest),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/req-123/unarchive', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleUnarchiveRequest } = await import('./requests');
+      const response = await handleUnarchiveRequest(request, mockEnv as any, 'req-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Only supervisors can unarchive requests');
+    });
+
+    it('should return 404 for non-existent request', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(null),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/nonexistent/unarchive', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleUnarchiveRequest } = await import('./requests');
+      const response = await handleUnarchiveRequest(request, mockEnv as any, 'nonexistent');
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Request not found');
+    });
+
+    it('should unarchive request successfully for supervisor', async () => {
+      let archivedAtSetToNull = false;
+      const unarchivedRequest = { ...mockRequest, archived_at: null };
+
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        if (sql.includes('UPDATE requests SET archived_at = NULL')) {
+          archivedAtSetToNull = true;
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        if (sql.includes('INSERT INTO audit_logs')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue(unarchivedRequest),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/req-123/unarchive', {
+        method: 'POST',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleUnarchiveRequest } = await import('./requests');
+      const response = await handleUnarchiveRequest(request, mockEnv as any, 'req-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.request.archived_at).toBeNull();
+      expect(archivedAtSetToNull).toBe(true);
+    });
+  });
+
+  describe('GET /api/requests/archived', () => {
+    it('should return 403 for non-supervisor users', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'clerk' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/archived', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleListArchivedRequests } = await import('./requests');
+      const response = await handleListArchivedRequests(request, mockEnv as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(403);
+      expect(data.error).toBe('Only supervisors can view archived requests');
+    });
+
+    it('should list archived requests for supervisor', async () => {
+      const archivedRequests = [
+        { ...mockRequest, id: 'req-1', archived_at: 1234567890 },
+        { ...mockRequest, id: 'req-2', archived_at: 1234567891 },
+      ];
+
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        return {
+          all: vi.fn().mockResolvedValue({ results: archivedRequests }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/archived', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleListArchivedRequests } = await import('./requests');
+      const response = await handleListArchivedRequests(request, mockEnv as any);
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.requests).toHaveLength(2);
+      expect(data.requests[0].archived_at).toBeDefined();
+    });
+
+    it('should filter archived requests by search term', async () => {
+      let queryIncludesLike = false;
+
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        if (sql.includes('LIKE')) {
+          queryIncludesLike = true;
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            all: vi.fn().mockResolvedValue({ results: [] }),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/archived?search=FOIA', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleListArchivedRequests } = await import('./requests');
+      await handleListArchivedRequests(request, mockEnv as any);
+
+      expect(queryIncludesLike).toBe(true);
+    });
+
+    it('should only return requests with archived_at IS NOT NULL', async () => {
+      let queryChecksArchivedAt = false;
+
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT role')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ role: 'supervisor' }),
+            }),
+          };
+        }
+        if (sql.includes('archived_at IS NOT NULL')) {
+          queryChecksArchivedAt = true;
+        }
+        return {
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests/archived', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleListArchivedRequests } = await import('./requests');
+      await handleListArchivedRequests(request, mockEnv as any);
+
+      expect(queryChecksArchivedAt).toBe(true);
+    });
+  });
+
+  describe('GET /api/requests excludes archived', () => {
+    it('should exclude archived requests by default', async () => {
+      let queryExcludesArchived = false;
+
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('archived_at IS NULL')) {
+          queryExcludesArchived = true;
+        }
+        return {
+          all: vi.fn().mockResolvedValue({ results: [] }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/requests', {
+        method: 'GET',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleListRequests } = await import('./requests');
+      await handleListRequests(request, mockEnv as any);
+
+      expect(queryExcludesArchived).toBe(true);
+    });
+  });
 });

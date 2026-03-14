@@ -232,6 +232,34 @@ actor APIService {
         _ = try await makeRequest("/api/requests/\(id)", method: "DELETE")
     }
 
+    func archiveRequest(_ id: String) async throws -> RecordsRequest {
+        let data = try await makeRequest("/api/requests/\(id)/archive", method: "POST")
+        let response = try JSONDecoder().decode([String: RecordsRequest].self, from: data)
+        guard let request = response["request"] else {
+            throw APIError.invalidResponse
+        }
+        return request
+    }
+
+    func unarchiveRequest(_ id: String) async throws -> RecordsRequest {
+        let data = try await makeRequest("/api/requests/\(id)/unarchive", method: "POST")
+        let response = try JSONDecoder().decode([String: RecordsRequest].self, from: data)
+        guard let request = response["request"] else {
+            throw APIError.invalidResponse
+        }
+        return request
+    }
+
+    func listArchivedRequests(search: String? = nil) async throws -> [RecordsRequest] {
+        var path = "/api/requests/archived"
+        if let search = search, !search.isEmpty {
+            path += "?search=\(search.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? search)"
+        }
+        let data = try await makeRequest(path)
+        let response = try JSONDecoder().decode([String: [RecordsRequest]].self, from: data)
+        return response["requests"] ?? []
+    }
+
     // MARK: - Files
 
     func listFiles(requestId: String) async throws -> [EvidenceFile] {

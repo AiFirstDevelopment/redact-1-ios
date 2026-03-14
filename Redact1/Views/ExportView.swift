@@ -139,6 +139,7 @@ struct ExportView: View {
             notes: nil,
             status: .inProgress,
             createdBy: "user",
+            archivedAt: nil,
             createdAt: 0,
             updatedAt: 0
         ),

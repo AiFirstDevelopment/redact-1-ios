@@ -8,6 +8,7 @@ struct RecordsRequest: Codable, Identifiable {
     let notes: String?
     let status: RequestStatus
     let createdBy: String
+    let archivedAt: Int?
     let createdAt: Int
     let updatedAt: Int
 
@@ -16,8 +17,13 @@ struct RecordsRequest: Codable, Identifiable {
         case requestNumber = "request_number"
         case requestDate = "request_date"
         case createdBy = "created_by"
+        case archivedAt = "archived_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+    }
+
+    var isArchived: Bool {
+        archivedAt != nil
     }
 
     var formattedDate: String {

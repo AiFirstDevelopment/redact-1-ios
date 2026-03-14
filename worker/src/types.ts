@@ -25,6 +25,7 @@ export interface Request {
   notes: string | null;
   status: 'new' | 'processing' | 'review' | 'exported';
   created_by: string;
+  archived_at: number | null;
   created_at: number;
   updated_at: number;
 }
@@ -119,6 +120,7 @@ export interface UpdateRequestBody {
   notes?: string;
   status?: Request['status'];
   created_by?: string;
+  archived?: boolean;
 }
 
 export interface CreateDetectionBody {

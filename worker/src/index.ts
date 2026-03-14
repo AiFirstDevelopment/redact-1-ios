@@ -7,6 +7,9 @@ import {
   handleCreateRequest,
   handleUpdateRequest,
   handleDeleteRequest,
+  handleArchiveRequest,
+  handleUnarchiveRequest,
+  handleListArchivedRequests,
 } from './routes/requests';
 import {
   handleListFiles,
@@ -115,6 +118,14 @@ export default {
       } else if (path.match(/^\/api\/requests\/[^/]+$/) && method === 'DELETE') {
         const id = path.split('/')[3];
         response = await handleDeleteRequest(request, env, id);
+      } else if (path === '/api/requests/archived' && method === 'GET') {
+        response = await handleListArchivedRequests(request, env);
+      } else if (path.match(/^\/api\/requests\/[^/]+\/archive$/) && method === 'POST') {
+        const id = path.split('/')[3];
+        response = await handleArchiveRequest(request, env, id);
+      } else if (path.match(/^\/api\/requests\/[^/]+\/unarchive$/) && method === 'POST') {
+        const id = path.split('/')[3];
+        response = await handleUnarchiveRequest(request, env, id);
       }
       // Files routes
       else if (path.match(/^\/api\/requests\/[^/]+\/files$/) && method === 'GET') {

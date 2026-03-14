@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5C361635281C7FF1EB12F685 /* ArchivedRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9F0F2C2A332D6C6D799153 /* ArchivedRequestsView.swift */; };
 		R1000001 /* Redact1App.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000002 /* Redact1App.swift */; };
 		R1000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000004 /* ContentView.swift */; };
 		R1000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = R1000006 /* Assets.xcassets */; };
@@ -29,13 +30,13 @@
 		R1000046 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000047 /* ExportView.swift */; };
 		R1000048 /* AuditLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000049 /* AuditLogView.swift */; };
 		R1000050 /* UsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000051 /* UsersView.swift */; };
-		R1000080 /* UserDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000081 /* UserDetailView.swift */; };
 		R1000052 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000053 /* SettingsView.swift */; };
 		R1000060 /* DetectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000061 /* DetectionOverlay.swift */; };
 		R1000062 /* FileRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000063 /* FileRow.swift */; };
 		R1000064 /* RedactionPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000065 /* RedactionPreview.swift */; };
 		R1000070 /* OnboardingService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000071 /* OnboardingService.swift */; };
 		R1000072 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000073 /* OnboardingView.swift */; };
+		R1000080 /* UserDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000081 /* UserDetailView.swift */; };
 		R1T00001 /* AuthServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00002 /* AuthServiceTests.swift */; };
 		R1T00003 /* OnboardingServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00004 /* OnboardingServiceTests.swift */; };
 		R1T00005 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1T00006 /* ModelTests.swift */; };
@@ -55,6 +56,7 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		CB9F0F2C2A332D6C6D799153 /* ArchivedRequestsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ArchivedRequestsView.swift; path = Redact1/Views/ArchivedRequestsView.swift; sourceTree = SOURCE_ROOT; };
 		R1000002 /* Redact1App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redact1App.swift; sourceTree = "<group>"; };
 		R1000004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		R1000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -78,13 +80,13 @@
 		R1000047 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
 		R1000049 /* AuditLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLogView.swift; sourceTree = "<group>"; };
 		R1000051 /* UsersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsersView.swift; sourceTree = "<group>"; };
-		R1000081 /* UserDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDetailView.swift; sourceTree = "<group>"; };
 		R1000053 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		R1000061 /* DetectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionOverlay.swift; sourceTree = "<group>"; };
 		R1000063 /* FileRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRow.swift; sourceTree = "<group>"; };
 		R1000065 /* RedactionPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionPreview.swift; sourceTree = "<group>"; };
 		R1000071 /* OnboardingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingService.swift; sourceTree = "<group>"; };
 		R1000073 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		R1000081 /* UserDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDetailView.swift; sourceTree = "<group>"; };
 		R1T00002 /* AuthServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthServiceTests.swift; sourceTree = "<group>"; };
 		R1T00004 /* OnboardingServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingServiceTests.swift; sourceTree = "<group>"; };
 		R1T00006 /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
@@ -184,6 +186,7 @@
 				R1000081 /* UserDetailView.swift */,
 				R1000053 /* SettingsView.swift */,
 				R1000113 /* Components */,
+				CB9F0F2C2A332D6C6D799153 /* ArchivedRequestsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -338,6 +341,7 @@
 				R1000064 /* RedactionPreview.swift in Sources */,
 				R1000070 /* OnboardingService.swift in Sources */,
 				R1000072 /* OnboardingView.swift in Sources */,
+				5C361635281C7FF1EB12F685 /* ArchivedRequestsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
