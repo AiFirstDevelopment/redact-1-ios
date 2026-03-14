@@ -5,6 +5,7 @@ struct UsersView: View {
     @State private var isLoading = false
     @State private var error: String?
     @State private var showingCreateSheet = false
+    @State private var userToDelete: User?
 
     var body: some View {
         List {
@@ -21,7 +22,16 @@ struct UsersView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(users) { user in
-                    UserRow(user: user)
+                    NavigationLink(destination: UserDetailView(user: user)) {
+                        UserRow(user: user)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            userToDelete = user
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
             }
         }
@@ -41,6 +51,30 @@ struct UsersView: View {
                 users.append(newUser)
             }
         }
+        .confirmationDialog(
+            "Delete User",
+            isPresented: .init(
+                get: { userToDelete != nil },
+                set: { if !$0 { userToDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete \(userToDelete?.name ?? "")", role: .destructive) {
+                if let user = userToDelete {
+                    Task { await deleteUser(user) }
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                userToDelete = nil
+            }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        .alert("Error", isPresented: .constant(error != nil)) {
+            Button("OK") { error = nil }
+        } message: {
+            Text(error ?? "")
+        }
         .task {
             await loadUsers()
         }
@@ -56,6 +90,16 @@ struct UsersView: View {
         }
 
         isLoading = false
+    }
+
+    private func deleteUser(_ user: User) async {
+        do {
+            try await APIService.shared.deleteUser(user.id)
+            users.removeAll { $0.id == user.id }
+        } catch {
+            self.error = error.localizedDescription
+        }
+        userToDelete = nil
     }
 }
 

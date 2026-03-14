@@ -297,4 +297,58 @@ describe('Auth Routes', () => {
       expect(response.status).toBe(401);
     });
   });
+
+  describe('GET /api/users/:id', () => {
+    it('should require authentication', async () => {
+      const request = new Request('http://localhost/api/users/user-123', {
+        method: 'GET',
+      });
+
+      const { handleGetUser } = await import('./auth');
+      const response = await handleGetUser(request, mockEnv as any, 'user-123');
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('PUT /api/users/:id', () => {
+    it('should require authentication', async () => {
+      const request = new Request('http://localhost/api/users/user-123', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: 'Updated Name' }),
+      });
+
+      const { handleUpdateUser } = await import('./auth');
+      const response = await handleUpdateUser(request, mockEnv as any, 'user-123');
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('DELETE /api/users/:id', () => {
+    it('should require authentication', async () => {
+      const request = new Request('http://localhost/api/users/user-123', {
+        method: 'DELETE',
+      });
+
+      const { handleDeleteUser } = await import('./auth');
+      const response = await handleDeleteUser(request, mockEnv as any, 'user-123');
+
+      expect(response.status).toBe(401);
+    });
+  });
+
+  describe('GET /api/users/:id/audit', () => {
+    it('should require authentication', async () => {
+      const request = new Request('http://localhost/api/users/user-123/audit', {
+        method: 'GET',
+      });
+
+      const { handleGetUserAudit } = await import('./auth');
+      const response = await handleGetUserAudit(request, mockEnv as any, 'user-123');
+
+      expect(response.status).toBe(401);
+    });
+  });
 });

@@ -158,3 +158,137 @@ export async function handleCreateUser(request: Request, env: Env): Promise<Resp
     return error('Invalid request body');
   }
 }
+
+// Get single user (requires authentication)
+export async function handleGetUser(request: Request, env: Env, userId: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  const user = await env.DB.prepare(
+    'SELECT id, email, name, created_at, updated_at FROM users WHERE id = ?'
+  )
+    .bind(userId)
+    .first();
+
+  if (!user) {
+    return error('User not found', 404);
+  }
+
+  return json({ user });
+}
+
+// Update user (requires authentication)
+export async function handleUpdateUser(request: Request, env: Env, userId: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  try {
+    const body: { name?: string; email?: string; password?: string } = await request.json();
+
+    const existing = await env.DB.prepare('SELECT * FROM users WHERE id = ?')
+      .bind(userId)
+      .first<User>();
+
+    if (!existing) {
+      return error('User not found', 404);
+    }
+
+    // Check if new email conflicts with another user
+    if (body.email && body.email !== existing.email) {
+      const emailConflict = await env.DB.prepare('SELECT id FROM users WHERE email = ? AND id != ?')
+        .bind(body.email, userId)
+        .first();
+      if (emailConflict) {
+        return error('Email already in use by another user');
+      }
+    }
+
+    const timestamp = now();
+    const newName = body.name || existing.name;
+    const newEmail = body.email || existing.email;
+    const newPasswordHash = body.password ? await hashPassword(body.password) : existing.password_hash;
+
+    await env.DB.prepare(
+      'UPDATE users SET name = ?, email = ?, password_hash = ?, updated_at = ? WHERE id = ?'
+    )
+      .bind(newName, newEmail, newPasswordHash, timestamp, userId)
+      .run();
+
+    // Log the update
+    await env.DB.prepare(
+      'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+    )
+      .bind(generateId(), auth.user.id, 'update_user', 'user', userId, timestamp)
+      .run();
+
+    return json({
+      user: {
+        id: userId,
+        email: newEmail,
+        name: newName,
+        created_at: existing.created_at,
+        updated_at: timestamp,
+      },
+    });
+  } catch (e) {
+    return error('Invalid request body');
+  }
+}
+
+// Delete user (requires authentication)
+export async function handleDeleteUser(request: Request, env: Env, userId: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  // Prevent self-deletion
+  if (auth.user.id === userId) {
+    return error('Cannot delete your own account');
+  }
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?')
+    .bind(userId)
+    .first();
+
+  if (!existing) {
+    return error('User not found', 404);
+  }
+
+  await env.DB.prepare('DELETE FROM users WHERE id = ?')
+    .bind(userId)
+    .run();
+
+  // Log the deletion
+  await env.DB.prepare(
+    'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+    .bind(generateId(), auth.user.id, 'delete_user', 'user', userId, now())
+    .run();
+
+  return json({ success: true });
+}
+
+// Get user's audit log (requires authentication)
+export async function handleGetUserAudit(request: Request, env: Env, userId: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?')
+    .bind(userId)
+    .first();
+
+  if (!existing) {
+    return error('User not found', 404);
+  }
+
+  const logs = await env.DB.prepare(
+    `SELECT id, action, entity_type, entity_id, details, created_at
+     FROM audit_logs
+     WHERE user_id = ?
+     ORDER BY created_at DESC
+     LIMIT 100`
+  )
+    .bind(userId)
+    .all();
+
+  return json({ audit_logs: logs.results || [] });
+}

@@ -1,6 +1,6 @@
 import { Env } from './types';
 import { error, json } from './utils';
-import { handleLogin, handleLogout, handleMe, handleCreateUser, handleListUsers } from './routes/auth';
+import { handleLogin, handleLogout, handleMe, handleCreateUser, handleListUsers, handleGetUser, handleUpdateUser, handleDeleteUser, handleGetUserAudit } from './routes/auth';
 import {
   handleListRequests,
   handleGetRequest,
@@ -85,6 +85,18 @@ export default {
         response = await handleListUsers(request, env);
       } else if (path === '/api/users' && method === 'POST') {
         response = await handleCreateUser(request, env);
+      } else if (path.match(/^\/api\/users\/[^/]+$/) && method === 'GET') {
+        const id = path.split('/')[3];
+        response = await handleGetUser(request, env, id);
+      } else if (path.match(/^\/api\/users\/[^/]+$/) && method === 'PUT') {
+        const id = path.split('/')[3];
+        response = await handleUpdateUser(request, env, id);
+      } else if (path.match(/^\/api\/users\/[^/]+$/) && method === 'DELETE') {
+        const id = path.split('/')[3];
+        response = await handleDeleteUser(request, env, id);
+      } else if (path.match(/^\/api\/users\/[^/]+\/audit$/) && method === 'GET') {
+        const id = path.split('/')[3];
+        response = await handleGetUserAudit(request, env, id);
       }
       // Requests routes
       else if (path === '/api/requests' && method === 'GET') {

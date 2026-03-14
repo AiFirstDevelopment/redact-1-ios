@@ -29,6 +29,7 @@
 		R1000046 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000047 /* ExportView.swift */; };
 		R1000048 /* AuditLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000049 /* AuditLogView.swift */; };
 		R1000050 /* UsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000051 /* UsersView.swift */; };
+		R1000080 /* UserDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000081 /* UserDetailView.swift */; };
 		R1000052 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000053 /* SettingsView.swift */; };
 		R1000060 /* DetectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000061 /* DetectionOverlay.swift */; };
 		R1000062 /* FileRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000063 /* FileRow.swift */; };
@@ -77,6 +78,7 @@
 		R1000047 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
 		R1000049 /* AuditLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLogView.swift; sourceTree = "<group>"; };
 		R1000051 /* UsersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsersView.swift; sourceTree = "<group>"; };
+		R1000081 /* UserDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserDetailView.swift; sourceTree = "<group>"; };
 		R1000053 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		R1000061 /* DetectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionOverlay.swift; sourceTree = "<group>"; };
 		R1000063 /* FileRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRow.swift; sourceTree = "<group>"; };
@@ -179,6 +181,7 @@
 				R1000047 /* ExportView.swift */,
 				R1000049 /* AuditLogView.swift */,
 				R1000051 /* UsersView.swift */,
+				R1000081 /* UserDetailView.swift */,
 				R1000053 /* SettingsView.swift */,
 				R1000113 /* Components */,
 			);
@@ -328,6 +331,7 @@
 				R1000046 /* ExportView.swift in Sources */,
 				R1000048 /* AuditLogView.swift in Sources */,
 				R1000050 /* UsersView.swift in Sources */,
+				R1000080 /* UserDetailView.swift in Sources */,
 				R1000052 /* SettingsView.swift in Sources */,
 				R1000060 /* DetectionOverlay.swift in Sources */,
 				R1000062 /* FileRow.swift in Sources */,

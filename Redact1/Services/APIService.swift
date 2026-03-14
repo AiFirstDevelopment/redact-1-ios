@@ -136,6 +136,40 @@ actor APIService {
         return user
     }
 
+    func getUser(_ id: String) async throws -> User {
+        let data = try await makeRequest("/api/users/\(id)")
+        let response = try JSONDecoder().decode([String: User].self, from: data)
+        guard let user = response["user"] else {
+            throw APIError.invalidResponse
+        }
+        return user
+    }
+
+    func updateUser(_ id: String, name: String?, email: String?, password: String?) async throws -> User {
+        struct UpdateUserBody: Codable {
+            let name: String?
+            let email: String?
+            let password: String?
+        }
+        let body = try JSONEncoder().encode(UpdateUserBody(name: name, email: email, password: password))
+        let data = try await makeRequest("/api/users/\(id)", method: "PUT", body: body)
+        let response = try JSONDecoder().decode([String: User].self, from: data)
+        guard let user = response["user"] else {
+            throw APIError.invalidResponse
+        }
+        return user
+    }
+
+    func deleteUser(_ id: String) async throws {
+        _ = try await makeRequest("/api/users/\(id)", method: "DELETE")
+    }
+
+    func getUserAudit(_ id: String) async throws -> [AuditLogEntry] {
+        let data = try await makeRequest("/api/users/\(id)/audit")
+        let response = try JSONDecoder().decode([String: [AuditLogEntry]].self, from: data)
+        return response["audit_logs"] ?? []
+    }
+
     // MARK: - Requests
 
     func listRequests(status: RequestStatus? = nil, search: String? = nil) async throws -> [RecordsRequest] {
