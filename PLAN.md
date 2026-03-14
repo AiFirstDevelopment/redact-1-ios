@@ -27,16 +27,18 @@
 
 ## Architecture Overview
 
-Using the same Cloudflare stack as crossfire:
+- **Native SwiftUI iOS App** - iPad-optimized, uses Apple Vision for on-device detection
 - **Cloudflare Worker** (TypeScript) - API backend
 - **Cloudflare D1** - SQL database for metadata
 - **Cloudflare R2** - File storage (originals + redacted outputs)
-- **Cloudflare Pages** - Frontend (Vite + Capacitor for iOS)
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         iOS App (Capacitor)                      │
-│                    React/TypeScript + Vite                       │
+│                     Native iOS App (SwiftUI)                     │
+│         ┌──────────────┐     ┌─────────────────────┐            │
+│         │    Views     │     │   Apple Vision      │            │
+│         └──────────────┘     │ (face/plate/OCR)    │            │
+│                              └─────────────────────┘            │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 ▼
@@ -275,18 +277,18 @@ GET    /api/files/:id/audit              - Get audit log for file
 
 ---
 
-## Frontend Pages
+## SwiftUI Views
 
-1. **Login** (`/login`)
-2. **Dashboard** (`/`) - Request list with filters
-3. **Create Request** (`/requests/new`)
-4. **Request Detail** (`/requests/:id`) - Files list, status, actions
-5. **File Upload** (`/requests/:id/upload`)
-6. **Review Image** (`/files/:id/review`) - Side-by-side view, detection toggles, manual redaction
-7. **Review PDF** (`/files/:id/review-pdf`) - Page-by-page view, text highlights
-8. **Export** (`/requests/:id/export`) - Generate and download
-9. **Audit Trail** (`/requests/:id/audit`)
-10. **Users** (`/users`) - User management
+1. **LoginView** - Email/password login
+2. **RequestListView** - Dashboard with request list, filters, search
+3. **RequestDetailView** - Files list, status, actions
+4. **RequestFormView** - Create/edit request
+5. **FileUploadView** - Photo picker, document picker, upload progress
+6. **ImageReviewView** - Side-by-side view, detection overlays, manual redaction canvas
+7. **PDFReviewView** - Page-by-page view, text highlights, detection toggles
+8. **ExportView** - Generate and share redacted files
+9. **AuditLogView** - Activity history for request
+10. **UsersView** - User management
 
 ---
 
@@ -320,14 +322,14 @@ All detection happens **on-device** using Apple Vision framework. No external AP
 7. User reviews in Review UI
 ```
 
-### Regex Patterns
-```typescript
-const patterns = {
-  ssn: /\b\d{3}-\d{2}-\d{4}\b/g,
-  phone: /\b(\(\d{3}\)\s?|\d{3}[-.])\d{3}[-.]?\d{4}\b/g,
-  email: /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/g,
-  dob: /\b(0[1-9]|1[0-2])[\/\-](0[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b/g,
-};
+### Regex Patterns (Swift)
+```swift
+let patterns: [String: String] = [
+    "ssn": #"\b\d{3}-\d{2}-\d{4}\b"#,
+    "phone": #"\b(\(\d{3}\)\s?|\d{3}[-.])\d{3}[-.]?\d{4}\b"#,
+    "email": #"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"#,
+    "dob": #"\b(0[1-9]|1[0-2])[\/\-](0[1-9]|[12]\d|3[01])[\/\-](19|20)\d{2}\b"#
+]
 ```
 
 ---
@@ -336,6 +338,39 @@ const patterns = {
 
 ```
 redact-1-ios/
+├── Redact1/
+│   ├── Redact1App.swift           # App entry point
+│   ├── Models/
+│   │   ├── Request.swift
+│   │   ├── EvidenceFile.swift
+│   │   ├── Detection.swift
+│   │   └── User.swift
+│   ├── Views/
+│   │   ├── LoginView.swift
+│   │   ├── RequestListView.swift
+│   │   ├── RequestDetailView.swift
+│   │   ├── RequestFormView.swift
+│   │   ├── FileUploadView.swift
+│   │   ├── ImageReviewView.swift
+│   │   ├── PDFReviewView.swift
+│   │   ├── ExportView.swift
+│   │   ├── AuditLogView.swift
+│   │   └── Components/
+│   │       ├── RedactionCanvas.swift
+│   │       ├── DetectionOverlay.swift
+│   │       └── FileRow.swift
+│   ├── Services/
+│   │   ├── APIService.swift       # Cloudflare Worker client
+│   │   ├── AuthService.swift      # JWT handling
+│   │   ├── VisionService.swift    # Apple Vision detection
+│   │   └── RedactionService.swift # Apply redactions to images/PDFs
+│   └── Assets.xcassets/
+│
+├── Redact1Tests/
+│   └── ViewInspector tests
+│
+├── Redact1.xcodeproj/
+│
 ├── worker/
 │   ├── src/
 │   │   ├── index.ts              # Main worker entry
@@ -347,8 +382,6 @@ redact-1-ios/
 │   │   │   ├── exports.ts
 │   │   │   └── users.ts
 │   │   ├── services/
-│   │   │   ├── pdf.ts            # PDF redaction rendering
-│   │   │   ├── image.ts          # Image redaction rendering
 │   │   │   └── export.ts         # ZIP generation
 │   │   ├── middleware/
 │   │   │   └── auth.ts
@@ -359,38 +392,9 @@ redact-1-ios/
 │   ├── package.json
 │   └── tsconfig.json
 │
-├── frontend/
-│   ├── src/
-│   │   ├── main.ts
-│   │   ├── App.tsx
-│   │   ├── pages/
-│   │   │   ├── Login.tsx
-│   │   │   ├── Dashboard.tsx
-│   │   │   ├── RequestDetail.tsx
-│   │   │   ├── FileReviewImage.tsx
-│   │   │   ├── FileReviewPdf.tsx
-│   │   │   └── ...
-│   │   ├── components/
-│   │   │   ├── RedactionCanvas.tsx
-│   │   │   ├── DetectionList.tsx
-│   │   │   ├── FileUpload.tsx
-│   │   │   └── ...
-│   │   ├── services/
-│   │   │   ├── api.ts
-│   │   │   ├── vision.ts         # iOS Vision integration via Capacitor plugin
-│   │   │   └── auth.ts
-│   │   └── types.ts
-│   ├── ios/                       # Capacitor iOS
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── capacitor.config.ts
-│   └── package.json
-│
-├── shared/
-│   └── types.ts                   # Shared types
-│
+├── CLAUDE.md
 ├── PLAN.md
-└── package.json
+└── .gitignore
 ```
 
 ---
@@ -398,56 +402,55 @@ redact-1-ios/
 ## Implementation Order
 
 ### Phase 1: Foundation (Week 1)
-- [ ] Set up monorepo structure
+- [ ] Create Xcode project with SwiftUI
+- [ ] Set up worker directory structure
 - [ ] Create D1 database and schema
 - [ ] Create R2 bucket
-- [ ] Implement auth (login, JWT, middleware)
-- [ ] Basic frontend shell with routing
+- [ ] Implement auth API (login, JWT, middleware)
+- [ ] Basic SwiftUI navigation shell
 
 ### Phase 2: Request Management (Week 2)
 - [ ] Requests CRUD API
-- [ ] Dashboard page (list, filter, search)
-- [ ] Create/edit request pages
-- [ ] Request detail page
+- [ ] RequestListView with filters/search
+- [ ] RequestFormView (create/edit)
+- [ ] RequestDetailView
 
 ### Phase 3: File Upload (Week 2-3)
 - [ ] File upload API (R2)
-- [ ] Upload UI with progress
-- [ ] File list in request detail
-- [ ] Thumbnail generation
+- [ ] FileUploadView with PhotosPicker/DocumentPicker
+- [ ] Upload progress indicator
+- [ ] File list in RequestDetailView
 
 ### Phase 4: Detection - Images (Week 3-4)
-- [ ] Capacitor plugin for Apple Vision
-- [ ] Face detection integration
-- [ ] Text/OCR detection integration
-- [ ] PII regex matching
+- [ ] VisionService with VNDetectFaceRectanglesRequest
+- [ ] VisionService with VNRecognizeTextRequest
+- [ ] PII regex matching in Swift
 - [ ] Detection storage API
-- [ ] Detection overlay on images
+- [ ] DetectionOverlay component
 
 ### Phase 5: Detection - PDFs (Week 4)
-- [ ] PDF text extraction
+- [ ] PDFKit text extraction
 - [ ] Scanned PDF OCR via Vision
 - [ ] PII regex matching
 - [ ] Detection storage for PDFs
 
 ### Phase 6: Review UI (Week 5)
-- [ ] Side-by-side original/redacted view
+- [ ] ImageReviewView with side-by-side preview
+- [ ] PDFReviewView with page navigation
 - [ ] Detection approve/reject toggles
-- [ ] Manual redaction drawing (canvas)
-- [ ] Save review state
+- [ ] RedactionCanvas for manual drawing
 
 ### Phase 7: Export (Week 6)
-- [ ] Apply redactions to images (solid black boxes)
-- [ ] Apply redactions to PDFs (solid black boxes)
-- [ ] Generate audit report
-- [ ] ZIP bundle generation
-- [ ] Export download
+- [ ] RedactionService to apply black boxes to images
+- [ ] RedactionService to apply black boxes to PDFs
+- [ ] Generate audit report PDF
+- [ ] Share sheet integration
 
 ### Phase 8: Polish (Week 7)
-- [ ] User management UI
-- [ ] Audit log UI
+- [ ] UsersView
+- [ ] AuditLogView
 - [ ] Error handling
-- [ ] iOS Capacitor build and test
+- [ ] ViewInspector tests
 
 ---
 
