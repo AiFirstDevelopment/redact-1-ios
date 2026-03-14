@@ -61,11 +61,13 @@ struct CreateRequestBody: Codable {
     let title: String
     let requestDate: Int
     let notes: String?
+    let assignTo: String?
 
     enum CodingKeys: String, CodingKey {
         case title, notes
         case requestNumber = "request_number"
         case requestDate = "request_date"
+        case assignTo = "assign_to"
     }
 }
 

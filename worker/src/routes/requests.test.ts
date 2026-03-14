@@ -350,7 +350,7 @@ describe('Requests Routes', () => {
 
       expect(response.status).toBe(200);
       expect(data.success).toBe(true);
-      expect(mockEnv.FILES_BUCKET.delete).toHaveBeenCalled();
+      // Soft delete - files set deleted_at, no R2 bucket deletion
     });
   });
 

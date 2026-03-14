@@ -155,40 +155,54 @@ class VisionService {
         for pageIndex in 0..<pdfDocument.pageCount {
             guard let page = pdfDocument.page(at: pageIndex) else { continue }
 
-            // Try to get text directly from PDF
+            // Render page to image for face detection
+            let pageRect = page.bounds(for: .mediaBox)
+            let scale: CGFloat = 2.0
+            let scaledSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
+
+            let renderer = UIGraphicsImageRenderer(size: scaledSize)
+            let image = renderer.image { context in
+                UIColor.white.setFill()
+                context.fill(CGRect(origin: .zero, size: scaledSize))
+
+                context.cgContext.translateBy(x: 0, y: scaledSize.height)
+                context.cgContext.scaleBy(x: scale, y: -scale)
+
+                page.draw(with: .mediaBox, to: context.cgContext)
+            }
+
+            // Run face detection on rendered page
+            if let cgImage = image.cgImage {
+                let faceResults = try await detectFaces(in: cgImage)
+                let adjustedFaces = faceResults.map { region in
+                    DetectedRegion(
+                        type: region.type,
+                        boundingBox: region.boundingBox,
+                        confidence: region.confidence,
+                        textContent: region.textContent,
+                        pageNumber: pageIndex + 1
+                    )
+                }
+                allRegions.append(contentsOf: adjustedFaces)
+            }
+
+            // Get text for PII detection
             if let text = page.string, !text.isEmpty {
                 let textRegions = detectPIIInText(text, pageNumber: pageIndex + 1)
                 allRegions.append(contentsOf: textRegions)
-            } else {
-                // Scanned PDF - render to image and OCR
-                let pageRect = page.bounds(for: .mediaBox)
-                let scale: CGFloat = 2.0 // Render at 2x for better OCR
-                let scaledSize = CGSize(width: pageRect.width * scale, height: pageRect.height * scale)
-
-                let renderer = UIGraphicsImageRenderer(size: scaledSize)
-                let image = renderer.image { context in
-                    UIColor.white.setFill()
-                    context.fill(CGRect(origin: .zero, size: scaledSize))
-
-                    context.cgContext.translateBy(x: 0, y: scaledSize.height)
-                    context.cgContext.scaleBy(x: scale, y: -scale)
-
-                    page.draw(with: .mediaBox, to: context.cgContext)
+            } else if let cgImage = image.cgImage {
+                // Scanned PDF - OCR for text
+                let textResults = try await detectText(in: cgImage)
+                let adjustedResults = textResults.map { region in
+                    DetectedRegion(
+                        type: region.type,
+                        boundingBox: region.boundingBox,
+                        confidence: region.confidence,
+                        textContent: region.textContent,
+                        pageNumber: pageIndex + 1
+                    )
                 }
-
-                if let cgImage = image.cgImage {
-                    let textResults = try await detectText(in: cgImage)
-                    let adjustedResults = textResults.map { region in
-                        DetectedRegion(
-                            type: region.type,
-                            boundingBox: region.boundingBox,
-                            confidence: region.confidence,
-                            textContent: region.textContent,
-                            pageNumber: pageIndex + 1
-                        )
-                    }
-                    allRegions.append(contentsOf: adjustedResults)
-                }
+                allRegions.append(contentsOf: adjustedResults)
             }
         }
 

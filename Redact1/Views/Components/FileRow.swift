@@ -79,6 +79,7 @@ struct FileStatusIndicator: View {
             redactedR2Key: nil,
             status: .detected,
             uploadedBy: "user",
+            deletedAt: nil,
             createdAt: 0,
             updatedAt: 0
         ))
@@ -94,6 +95,7 @@ struct FileStatusIndicator: View {
             redactedR2Key: nil,
             status: .reviewed,
             uploadedBy: "user",
+            deletedAt: nil,
             createdAt: 0,
             updatedAt: 0
         ))

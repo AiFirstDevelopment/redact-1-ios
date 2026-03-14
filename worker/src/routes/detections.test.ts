@@ -402,6 +402,180 @@ describe('Detections Routes', () => {
     });
   });
 
+  describe('DELETE /api/files/:id/detections (Clear Detections)', () => {
+    it('should return 404 for non-existent file', async () => {
+      mockEnv.DB.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue(null),
+        }),
+      });
+
+      const request = new Request('http://localhost/api/files/nonexistent/detections', {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleClearDetections } = await import('./detections');
+      const response = await handleClearDetections(request, mockEnv as any, 'nonexistent');
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('File not found');
+    });
+
+    it('should clear all detections for a file', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('SELECT id FROM files')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              first: vi.fn().mockResolvedValue({ id: 'file-123' }),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            run: vi.fn().mockResolvedValue({}),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/files/file-123/detections', {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer token' },
+      });
+
+      const { handleClearDetections } = await import('./detections');
+      const response = await handleClearDetections(request, mockEnv as any, 'file-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.success).toBe(true);
+    });
+  });
+
+  describe('PUT /api/detections/:id (Bounding Box Update)', () => {
+    it('should update detection bounding box', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('UPDATE') || sql.includes('INSERT INTO audit_logs')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue({
+              ...mockDetection,
+              bbox_x: 150,
+              bbox_y: 150,
+              bbox_width: 75,
+              bbox_height: 75,
+            }),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/detections/det-123', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify({
+          bbox_x: 150,
+          bbox_y: 150,
+          bbox_width: 75,
+          bbox_height: 75,
+        }),
+      });
+
+      const { handleUpdateDetection } = await import('./detections');
+      const response = await handleUpdateDetection(request, mockEnv as any, 'det-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.detection.bbox_x).toBe(150);
+      expect(data.detection.bbox_y).toBe(150);
+    });
+  });
+
+  describe('PUT /api/manual-redactions/:id', () => {
+    it('should return 404 for non-existent manual redaction', async () => {
+      mockEnv.DB.prepare.mockReturnValue({
+        bind: vi.fn().mockReturnValue({
+          first: vi.fn().mockResolvedValue(null),
+        }),
+      });
+
+      const request = new Request('http://localhost/api/manual-redactions/nonexistent', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify({
+          bbox_x: 100,
+          bbox_y: 100,
+          bbox_width: 50,
+          bbox_height: 50,
+        }),
+      });
+
+      const { handleUpdateManualRedaction } = await import('./detections');
+      const response = await handleUpdateManualRedaction(request, mockEnv as any, 'nonexistent');
+      const data = await response.json();
+
+      expect(response.status).toBe(404);
+      expect(data.error).toBe('Manual redaction not found');
+    });
+
+    it('should update manual redaction bounding box', async () => {
+      mockEnv.DB.prepare.mockImplementation((sql: string) => {
+        if (sql.includes('UPDATE') || sql.includes('INSERT INTO audit_logs')) {
+          return {
+            bind: vi.fn().mockReturnValue({
+              run: vi.fn().mockResolvedValue({}),
+            }),
+          };
+        }
+        return {
+          bind: vi.fn().mockReturnValue({
+            first: vi.fn().mockResolvedValue({
+              ...mockManualRedaction,
+              bbox_x: 250,
+              bbox_y: 250,
+              bbox_width: 150,
+              bbox_height: 150,
+            }),
+          }),
+        };
+      });
+
+      const request = new Request('http://localhost/api/manual-redactions/mr-123', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: 'Bearer token',
+        },
+        body: JSON.stringify({
+          bbox_x: 250,
+          bbox_y: 250,
+          bbox_width: 150,
+          bbox_height: 150,
+        }),
+      });
+
+      const { handleUpdateManualRedaction } = await import('./detections');
+      const response = await handleUpdateManualRedaction(request, mockEnv as any, 'mr-123');
+      const data = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(data.manual_redaction.bbox_x).toBe(250);
+      expect(data.manual_redaction.bbox_y).toBe(250);
+    });
+  });
+
   describe('DELETE /api/manual-redactions/:id', () => {
     it('should return 404 for non-existent redaction', async () => {
       mockEnv.DB.prepare.mockReturnValue({

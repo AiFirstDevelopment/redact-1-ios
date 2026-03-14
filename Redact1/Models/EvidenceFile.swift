@@ -11,6 +11,7 @@ struct EvidenceFile: Codable, Identifiable {
     let redactedR2Key: String?
     let status: FileStatus
     let uploadedBy: String
+    let deletedAt: Int?
     let createdAt: Int
     let updatedAt: Int
 
@@ -23,6 +24,7 @@ struct EvidenceFile: Codable, Identifiable {
         case originalR2Key = "original_r2_key"
         case redactedR2Key = "redacted_r2_key"
         case uploadedBy = "uploaded_by"
+        case deletedAt = "deleted_at"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }

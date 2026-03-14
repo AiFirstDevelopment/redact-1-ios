@@ -23,7 +23,7 @@ export interface Request {
   title: string;
   request_date: number;
   notes: string | null;
-  status: 'new' | 'processing' | 'review' | 'exported';
+  status: 'new' | 'in_progress' | 'completed';
   created_by: string;
   archived_at: number | null;
   created_at: number;
@@ -113,6 +113,7 @@ export interface CreateRequestBody {
   title: string;
   request_date: number;
   notes?: string;
+  assign_to?: string;
 }
 
 export interface UpdateRequestBody {

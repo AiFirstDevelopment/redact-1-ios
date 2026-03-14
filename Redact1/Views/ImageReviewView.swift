@@ -16,6 +16,9 @@ struct ImageReviewView: View {
     @State private var showingPreview = false
     @State private var isDrawingMode = false
     @State private var drawingRect: CGRect?
+    @State private var selectedDetectionId: String?
+    @State private var detectionMessage: String?
+    @State private var isFullscreen = false
 
     var body: some View {
         GeometryReader { geometry in
@@ -33,6 +36,21 @@ struct ImageReviewView: View {
                     .foregroundStyle(.purple)
                 }
 
+                // Detection result message
+                if let message = detectionMessage {
+                    HStack {
+                        Image(systemName: detections.isEmpty ? "info.circle" : "checkmark.circle.fill")
+                        Text(message)
+                            .font(.subheadline)
+                    }
+                    .padding(10)
+                    .frame(maxWidth: .infinity)
+                    .background(detections.isEmpty ? Color.orange.opacity(0.2) : Color.green.opacity(0.2))
+                    .foregroundStyle(detections.isEmpty ? .orange : .green)
+                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .animation(.easeInOut, value: detectionMessage)
+                }
+
                 // Image with overlays
                 ZStack {
                     if let image = image {
@@ -45,8 +63,14 @@ struct ImageReviewView: View {
                                     manualRedactions: manualRedactions,
                                     isDrawingMode: isDrawingMode,
                                     drawingRect: $drawingRect,
-                                    onDrawComplete: handleDrawComplete
+                                    onDrawComplete: handleDrawComplete,
+                                    onDetectionMoved: handleDetectionMoved,
+                                    selectedDetectionId: $selectedDetectionId
                                 )
+                            }
+                            .onTapGesture {
+                                // Enter fullscreen for easier editing
+                                isFullscreen = true
                             }
                             .border(isDrawingMode ? Color.purple : Color.clear, width: 3)
                     } else if isLoading {
@@ -99,36 +123,24 @@ struct ImageReviewView: View {
                 .disabled(isDeleting)
                 .tint(.red)
             }
-            ToolbarItem(placement: .topBarTrailing) {
-                HStack(spacing: 16) {
-                    Button(action: { isDrawingMode.toggle() }) {
-                        Image(systemName: isDrawingMode ? "pencil.circle.fill" : "pencil.circle")
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button(action: runDetection) {
+                    if isDetecting {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "wand.and.stars")
                     }
-                    .disabled(image == nil)
-
-                    Button(action: runDetection) {
-                        if isDetecting {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "wand.and.stars")
-                        }
-                    }
-                    .disabled(image == nil || isDetecting)
-
-                    Button(action: { showingPreview = true }) {
-                        Image(systemName: "eye")
-                    }
-                    .disabled(image == nil)
-
-                    Button(action: saveReview) {
-                        if isSaving {
-                            ProgressView()
-                        } else {
-                            Image(systemName: "checkmark.circle")
-                        }
-                    }
-                    .disabled(detections.isEmpty && manualRedactions.isEmpty)
                 }
+                .disabled(image == nil || isDetecting)
+
+                Button(action: saveReview) {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Image(systemName: "checkmark.circle")
+                    }
+                }
+                .disabled(detections.isEmpty && manualRedactions.isEmpty)
             }
         }
         .confirmationDialog("Delete File", isPresented: $showingDeleteConfirmation, titleVisibility: .visible) {
@@ -145,6 +157,16 @@ struct ImageReviewView: View {
                     originalImage: image,
                     detections: detections,
                     manualRedactions: manualRedactions
+                )
+            }
+        }
+        .fullScreenCover(isPresented: $isFullscreen) {
+            if let image = image {
+                FullscreenImageEditor(
+                    image: image,
+                    detections: $detections,
+                    manualRedactions: $manualRedactions,
+                    fileId: file.id
                 )
             }
         }
@@ -188,6 +210,10 @@ struct ImageReviewView: View {
         isDetecting = true
         Task {
             do {
+                // Clear existing detections first
+                try await APIService.shared.clearDetections(fileId: file.id)
+                await MainActor.run { detections = [] }
+
                 let regions = try await VisionService.shared.detectInImage(image)
 
                 let newDetections = regions.map { region in
@@ -205,16 +231,43 @@ struct ImageReviewView: View {
                     )
                 }
 
+                await MainActor.run {
+                    if !newDetections.isEmpty {
+                        // Show success message
+                        let faceCount = newDetections.filter { $0.detectionType == "face" }.count
+                        let otherCount = newDetections.count - faceCount
+                        var parts: [String] = []
+                        if faceCount > 0 { parts.append("\(faceCount) face\(faceCount > 1 ? "s" : "")") }
+                        if otherCount > 0 { parts.append("\(otherCount) other") }
+                        detectionMessage = "Found \(parts.joined(separator: ", "))"
+                    } else {
+                        detectionMessage = "No sensitive content detected"
+                    }
+                }
+
                 if !newDetections.isEmpty {
-                    detections = try await APIService.shared.createDetections(
+                    let savedDetections = try await APIService.shared.createDetections(
                         fileId: file.id,
                         detections: newDetections
                     )
+                    await MainActor.run {
+                        detections = savedDetections
+                    }
+                }
+
+                // Auto-hide message after 3 seconds
+                Task { @MainActor in
+                    try? await Task.sleep(nanoseconds: 3_000_000_000)
+                    detectionMessage = nil
                 }
             } catch {
-                self.error = error.localizedDescription
+                await MainActor.run {
+                    self.error = error.localizedDescription
+                }
             }
-            isDetecting = false
+            await MainActor.run {
+                isDetecting = false
+            }
         }
     }
 
@@ -251,6 +304,27 @@ struct ImageReviewView: View {
         }
         drawingRect = nil
         isDrawingMode = false
+    }
+
+    private func handleDetectionMoved(_ detection: Detection, _ newRect: CGRect) {
+        Task {
+            do {
+                // Update the detection with new bounding box
+                let updated = try await APIService.shared.updateDetectionBounds(
+                    detection.id,
+                    bboxX: Double(newRect.origin.x),
+                    bboxY: Double(newRect.origin.y),
+                    bboxWidth: Double(newRect.width),
+                    bboxHeight: Double(newRect.height)
+                )
+                if let index = detections.firstIndex(where: { $0.id == detection.id }) {
+                    detections[index] = updated
+                }
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+        selectedDetectionId = nil
     }
 
     private func deleteManualRedactions(at offsets: IndexSet) {
@@ -370,6 +444,198 @@ struct DetectionRow: View {
     }
 }
 
+struct FullscreenImageEditor: View {
+    @Environment(\.dismiss) private var dismiss
+    let image: UIImage
+    @Binding var detections: [Detection]
+    @Binding var manualRedactions: [ManualRedaction]
+    let fileId: String
+
+    @State private var drawingRect: CGRect?
+    @State private var selectedDetectionId: String?
+    @State private var error: String?
+
+    var body: some View {
+        ZStack {
+            Color.black.ignoresSafeArea()
+
+            // Zoomable image with overlay - always in drawing mode
+            ZoomableImageView(image: image) {
+                DetectionOverlayView(
+                    detections: detections,
+                    manualRedactions: manualRedactions,
+                    isDrawingMode: true,
+                    drawingRect: $drawingRect,
+                    onDrawComplete: handleDrawComplete,
+                    onDetectionMoved: handleDetectionMoved,
+                    onManualRedactionMoved: handleManualRedactionMoved,
+                    onManualRedactionDelete: handleManualRedactionDelete,
+                    selectedDetectionId: $selectedDetectionId
+                )
+            }
+            .onTapGesture {
+                selectedDetectionId = nil
+            }
+
+            // Top controls
+            VStack {
+                HStack {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundStyle(.white)
+                    .padding()
+
+                    Spacer()
+
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                    .foregroundStyle(.white)
+                    .padding()
+                }
+                .background(Color.black.opacity(0.5))
+
+                Text("Drag to draw • Tap box to move")
+                    .font(.caption)
+                    .foregroundStyle(.white)
+                    .padding(8)
+                    .background(Color.purple.opacity(0.8))
+                    .cornerRadius(8)
+
+                Spacer()
+            }
+        }
+        .statusBar(hidden: true)
+        .alert("Error", isPresented: .constant(error != nil)) {
+            Button("OK") { error = nil }
+        } message: {
+            Text(error ?? "")
+        }
+    }
+
+    private func handleDrawComplete(_ rect: CGRect) {
+        Task {
+            do {
+                let body = CreateManualRedactionBody(
+                    redactionType: "manual",
+                    bboxX: Double(rect.origin.x),
+                    bboxY: Double(rect.origin.y),
+                    bboxWidth: Double(rect.width),
+                    bboxHeight: Double(rect.height),
+                    pageNumber: nil
+                )
+                let redaction = try await APIService.shared.createManualRedaction(
+                    fileId: fileId,
+                    body: body
+                )
+                manualRedactions.append(redaction)
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+        drawingRect = nil
+    }
+
+    private func handleDetectionMoved(_ detection: Detection, _ newRect: CGRect) {
+        Task {
+            do {
+                let updated = try await APIService.shared.updateDetectionBounds(
+                    detection.id,
+                    bboxX: Double(newRect.origin.x),
+                    bboxY: Double(newRect.origin.y),
+                    bboxWidth: Double(newRect.width),
+                    bboxHeight: Double(newRect.height)
+                )
+                if let index = detections.firstIndex(where: { $0.id == detection.id }) {
+                    detections[index] = updated
+                }
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+        selectedDetectionId = nil
+    }
+
+    private func handleManualRedactionMoved(_ redaction: ManualRedaction, _ newRect: CGRect) {
+        Task {
+            do {
+                let updated = try await APIService.shared.updateManualRedactionBounds(
+                    redaction.id,
+                    bboxX: Double(newRect.origin.x),
+                    bboxY: Double(newRect.origin.y),
+                    bboxWidth: Double(newRect.width),
+                    bboxHeight: Double(newRect.height)
+                )
+                if let index = manualRedactions.firstIndex(where: { $0.id == redaction.id }) {
+                    manualRedactions[index] = updated
+                }
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    private func handleManualRedactionDelete(_ redaction: ManualRedaction) {
+        Task {
+            do {
+                try await APIService.shared.deleteManualRedaction(redaction.id)
+                manualRedactions.removeAll { $0.id == redaction.id }
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+}
+
+struct ZoomableImageView<Overlay: View>: View {
+    let image: UIImage
+    let overlay: () -> Overlay
+
+    @State private var scale: CGFloat = 1.0
+    @State private var lastScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var lastOffset: CGSize = .zero
+
+    var body: some View {
+        GeometryReader { geometry in
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFit()
+                .overlay { overlay() }
+                .scaleEffect(scale)
+                .offset(offset)
+                .gesture(
+                    MagnificationGesture()
+                        .onChanged { value in
+                            scale = lastScale * value
+                        }
+                        .onEnded { _ in
+                            lastScale = scale
+                            if scale < 1 {
+                                withAnimation { scale = 1; lastScale = 1 }
+                            }
+                        }
+                )
+                .onTapGesture(count: 2) {
+                    withAnimation {
+                        if scale > 1 {
+                            scale = 1
+                            lastScale = 1
+                            offset = .zero
+                            lastOffset = .zero
+                        } else {
+                            scale = 2
+                            lastScale = 2
+                        }
+                    }
+                }
+                .frame(width: geometry.size.width, height: geometry.size.height)
+        }
+    }
+}
+
 #Preview {
     NavigationStack {
         ImageReviewView(file: EvidenceFile(
@@ -383,6 +649,7 @@ struct DetectionRow: View {
             redactedR2Key: nil,
             status: .uploaded,
             uploadedBy: "user",
+            deletedAt: nil,
             createdAt: 0,
             updatedAt: 0
         ))

@@ -293,15 +293,38 @@ actor APIService {
 
         let (data, response) = try await URLSession.shared.data(for: request)
 
-        guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 201 else {
+        guard let httpResponse = response as? HTTPURLResponse else {
             throw APIError.invalidResponse
         }
 
-        let responseData = try JSONDecoder().decode([String: EvidenceFile].self, from: data)
-        guard let file = responseData["file"] else {
-            throw APIError.invalidResponse
+        // Debug: print response
+        if let responseString = String(data: data, encoding: .utf8) {
+            print("Upload response (\(httpResponse.statusCode)): \(responseString)")
         }
-        return file
+
+        switch httpResponse.statusCode {
+        case 200, 201:
+            do {
+                let responseData = try JSONDecoder().decode([String: EvidenceFile].self, from: data)
+                guard let file = responseData["file"] else {
+                    throw APIError.serverError("Response missing 'file' key")
+                }
+                return file
+            } catch let decodingError {
+                print("Decoding error: \(decodingError)")
+                throw APIError.serverError("Failed to decode: \(decodingError.localizedDescription)")
+            }
+        case 401:
+            throw APIError.unauthorized
+        case 404:
+            throw APIError.notFound
+        default:
+            if let errorResponse = try? JSONDecoder().decode([String: String].self, from: data),
+               let message = errorResponse["error"] {
+                throw APIError.serverError(message)
+            }
+            throw APIError.serverError("Upload failed with status \(httpResponse.statusCode)")
+        }
     }
 
     func getFileOriginal(_ id: String) async throws -> Data {
@@ -328,6 +351,10 @@ actor APIService {
         return (response.detections, response.manual_redactions)
     }
 
+    func clearDetections(fileId: String) async throws {
+        _ = try await makeRequest("/api/files/\(fileId)/detections", method: "DELETE")
+    }
+
     func createDetections(fileId: String, detections: [CreateDetectionBody]) async throws -> [Detection] {
         struct RequestBody: Codable {
             let detections: [CreateDetectionBody]
@@ -351,9 +378,41 @@ actor APIService {
         return detection
     }
 
+    func updateDetectionBounds(_ id: String, bboxX: Double, bboxY: Double, bboxWidth: Double, bboxHeight: Double) async throws -> Detection {
+        struct RequestBody: Codable {
+            let bbox_x: Double
+            let bbox_y: Double
+            let bbox_width: Double
+            let bbox_height: Double
+        }
+        let body = try JSONEncoder().encode(RequestBody(bbox_x: bboxX, bbox_y: bboxY, bbox_width: bboxWidth, bbox_height: bboxHeight))
+        let data = try await makeRequest("/api/detections/\(id)", method: "PUT", body: body)
+        let response = try JSONDecoder().decode([String: Detection].self, from: data)
+        guard let detection = response["detection"] else {
+            throw APIError.invalidResponse
+        }
+        return detection
+    }
+
     func createManualRedaction(fileId: String, body: CreateManualRedactionBody) async throws -> ManualRedaction {
         let requestBody = try JSONEncoder().encode(body)
         let data = try await makeRequest("/api/files/\(fileId)/manual-redactions", method: "POST", body: requestBody)
+        let response = try JSONDecoder().decode([String: ManualRedaction].self, from: data)
+        guard let redaction = response["manual_redaction"] else {
+            throw APIError.invalidResponse
+        }
+        return redaction
+    }
+
+    func updateManualRedactionBounds(_ id: String, bboxX: Double, bboxY: Double, bboxWidth: Double, bboxHeight: Double) async throws -> ManualRedaction {
+        struct RequestBody: Codable {
+            let bbox_x: Double
+            let bbox_y: Double
+            let bbox_width: Double
+            let bbox_height: Double
+        }
+        let body = try JSONEncoder().encode(RequestBody(bbox_x: bboxX, bbox_y: bboxY, bbox_width: bboxWidth, bbox_height: bboxHeight))
+        let data = try await makeRequest("/api/manual-redactions/\(id)", method: "PUT", body: body)
         let response = try JSONDecoder().decode([String: ManualRedaction].self, from: data)
         guard let redaction = response["manual_redaction"] else {
             throw APIError.invalidResponse

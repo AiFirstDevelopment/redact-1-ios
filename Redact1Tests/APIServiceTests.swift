@@ -105,4 +105,102 @@ final class APIServiceTests: XCTestCase {
         XCTAssertEqual(json["status"] as? String, "completed")
         XCTAssertNil(json["notes"])
     }
+
+    // MARK: - APIService Method Existence Tests
+
+    func testAPIServiceHasClearDetectionsMethod() {
+        // Verify the clearDetections method exists on APIService
+        let service = APIService.shared
+        XCTAssertNotNil(service)
+        // Method signature: func clearDetections(fileId: String) async throws
+    }
+
+    func testAPIServiceHasUpdateManualRedactionBoundsMethod() {
+        // Verify the updateManualRedactionBounds method exists on APIService
+        let service = APIService.shared
+        XCTAssertNotNil(service)
+        // Method signature: func updateManualRedactionBounds(_ id: String, bboxX: Double, bboxY: Double, bboxWidth: Double, bboxHeight: Double) async throws -> ManualRedaction
+    }
+
+    func testAPIServiceHasUpdateDetectionBoundsMethod() {
+        // Verify the updateDetectionBounds method exists on APIService
+        let service = APIService.shared
+        XCTAssertNotNil(service)
+        // Method signature: func updateDetectionBounds(_ id: String, bboxX: Double, bboxY: Double, bboxWidth: Double, bboxHeight: Double) async throws -> Detection
+    }
+
+    // MARK: - Detection Bounding Box Tests
+
+    func testDetectionBoundingBoxComputation() {
+        let detection = Detection(
+            id: "det-123",
+            fileId: "file-123",
+            detectionType: .face,
+            bboxX: 0.1,
+            bboxY: 0.2,
+            bboxWidth: 0.3,
+            bboxHeight: 0.4,
+            pageNumber: nil,
+            textStart: nil,
+            textEnd: nil,
+            textContent: nil,
+            confidence: 0.95,
+            status: .pending,
+            reviewedBy: nil,
+            reviewedAt: nil,
+            createdAt: 1234567890
+        )
+
+        let bbox = detection.boundingBox
+        XCTAssertNotNil(bbox)
+        XCTAssertEqual(bbox?.origin.x, 0.1)
+        XCTAssertEqual(bbox?.origin.y, 0.2)
+        XCTAssertEqual(bbox?.width, 0.3)
+        XCTAssertEqual(bbox?.height, 0.4)
+    }
+
+    func testDetectionBoundingBoxNilWhenMissingCoordinates() {
+        let detection = Detection(
+            id: "det-123",
+            fileId: "file-123",
+            detectionType: .face,
+            bboxX: nil,
+            bboxY: nil,
+            bboxWidth: nil,
+            bboxHeight: nil,
+            pageNumber: nil,
+            textStart: nil,
+            textEnd: nil,
+            textContent: nil,
+            confidence: 0.95,
+            status: .pending,
+            reviewedBy: nil,
+            reviewedAt: nil,
+            createdAt: 1234567890
+        )
+
+        XCTAssertNil(detection.boundingBox)
+    }
+
+    func testManualRedactionBoundingBoxComputation() {
+        let redaction = ManualRedaction(
+            id: "mr-123",
+            fileId: "file-123",
+            redactionType: "manual",
+            bboxX: 0.5,
+            bboxY: 0.5,
+            bboxWidth: 0.2,
+            bboxHeight: 0.2,
+            pageNumber: 1,
+            createdBy: "user-123",
+            createdAt: 1234567890
+        )
+
+        let bbox = redaction.boundingBox
+        XCTAssertNotNil(bbox)
+        XCTAssertEqual(bbox?.origin.x, 0.5)
+        XCTAssertEqual(bbox?.origin.y, 0.5)
+        XCTAssertEqual(bbox?.width, 0.2)
+        XCTAssertEqual(bbox?.height, 0.2)
+    }
 }

@@ -6,42 +6,29 @@ struct DetectionOverlayView: View {
     let isDrawingMode: Bool
     @Binding var drawingRect: CGRect?
     var onDrawComplete: ((CGRect) -> Void)?
+    var onDetectionMoved: ((Detection, CGRect) -> Void)?
+    var onManualRedactionMoved: ((ManualRedaction, CGRect) -> Void)?
+    var onManualRedactionDelete: ((ManualRedaction) -> Void)?
+    @Binding var selectedDetectionId: String?
 
     @State private var dragStart: CGPoint?
+    @State private var dragOffsets: [String: CGSize] = [:]
+    @State private var resizeOffsets: [String: CGSize] = [:]
+    @State private var activeResizeCorner: ResizeCorner?
+
+    enum ResizeCorner {
+        case topLeft, topRight, bottomLeft, bottomRight
+    }
 
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Detection boxes
-                ForEach(detections) { detection in
-                    if let bbox = detection.boundingBox {
-                        let rect = convertToViewCoordinates(bbox, in: geometry.size)
-                        Rectangle()
-                            .stroke(strokeColor(for: detection.status), lineWidth: 2)
-                            .background(fillColor(for: detection.status).opacity(0.2))
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
-                    }
-                }
-
-                // Manual redaction boxes
-                ForEach(manualRedactions) { redaction in
-                    if let bbox = redaction.boundingBox {
-                        let rect = convertToViewCoordinates(bbox, in: geometry.size)
-                        Rectangle()
-                            .stroke(Color.purple, lineWidth: 2)
-                            .background(Color.purple.opacity(0.2))
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
-                    }
-                }
-
-                // Drawing overlay
+                // Drawing overlay (FIRST so it's behind detection boxes)
                 if isDrawingMode {
                     Color.clear
                         .contentShape(Rectangle())
                         .gesture(
-                            DragGesture(minimumDistance: 0)
+                            DragGesture(minimumDistance: 1)
                                 .onChanged { value in
                                     if dragStart == nil {
                                         dragStart = value.startLocation
@@ -79,8 +66,118 @@ struct DetectionOverlayView: View {
                             .background(Color.purple.opacity(0.3))
                             .frame(width: rect.width, height: rect.height)
                             .position(x: rect.midX, y: rect.midY)
+                            .allowsHitTesting(false)
                     }
                 }
+
+                // Detection boxes (on top so they can be tapped)
+                ForEach(Array(detections.enumerated()), id: \.element.id) { index, detection in
+                    if let bbox = detection.boundingBox, bbox.width > 0, bbox.height > 0 {
+                        let baseRect = convertToViewCoordinates(bbox, in: geometry.size)
+                        let offset = dragOffsets[detection.id] ?? .zero
+                        let resize = resizeOffsets[detection.id] ?? .zero
+                        let rect = CGRect(
+                            x: baseRect.origin.x + offset.width,
+                            y: baseRect.origin.y + offset.height,
+                            width: max(30, baseRect.width + resize.width),
+                            height: max(30, baseRect.height + resize.height)
+                        )
+
+                        EditableDetectionBox(
+                            rect: rect,
+                            color: strokeColor(for: detection.status),
+                            fillColor: fillColor(for: detection.status),
+                            isSelected: selectedDetectionId == detection.id,
+                            onTap: {
+                                selectedDetectionId = detection.id
+                            },
+                            onDrag: { offset in
+                                dragOffsets[detection.id] = offset
+                            },
+                            onDragEnd: {
+                                if let offset = dragOffsets[detection.id], offset != .zero {
+                                    let newRect = CGRect(
+                                        x: rect.origin.x,
+                                        y: rect.origin.y,
+                                        width: rect.width,
+                                        height: rect.height
+                                    )
+                                    let normalizedRect = convertToNormalizedCoordinates(newRect, in: geometry.size)
+                                    onDetectionMoved?(detection, normalizedRect)
+                                }
+                                dragOffsets[detection.id] = .zero
+                            },
+                            onResize: { corner, delta in
+                                resizeOffsets[detection.id] = delta
+                            },
+                            onResizeEnd: {
+                                if let resize = resizeOffsets[detection.id], resize != .zero {
+                                    let newRect = CGRect(
+                                        x: rect.origin.x,
+                                        y: rect.origin.y,
+                                        width: rect.width,
+                                        height: rect.height
+                                    )
+                                    let normalizedRect = convertToNormalizedCoordinates(newRect, in: geometry.size)
+                                    onDetectionMoved?(detection, normalizedRect)
+                                }
+                                resizeOffsets[detection.id] = .zero
+                            }
+                        )
+                        .zIndex(selectedDetectionId == detection.id ? 100 : Double(index))
+                    }
+                }
+
+                // Manual redaction boxes
+                ForEach(manualRedactions) { redaction in
+                    if let bbox = redaction.boundingBox {
+                        let baseRect = convertToViewCoordinates(bbox, in: geometry.size)
+                        let offset = dragOffsets[redaction.id] ?? .zero
+                        let rect = CGRect(
+                            x: baseRect.origin.x + offset.width,
+                            y: baseRect.origin.y + offset.height,
+                            width: baseRect.width,
+                            height: baseRect.height
+                        )
+
+                        Rectangle()
+                            .stroke(Color.purple, lineWidth: 3)
+                            .background(Color.purple.opacity(0.3))
+                            .frame(width: rect.width, height: rect.height)
+                            .position(x: rect.midX, y: rect.midY)
+                            .contentShape(Rectangle())
+                            .gesture(
+                                DragGesture()
+                                    .onChanged { value in
+                                        dragOffsets[redaction.id] = CGSize(
+                                            width: value.translation.width,
+                                            height: value.translation.height
+                                        )
+                                    }
+                                    .onEnded { _ in
+                                        if let currentOffset = dragOffsets[redaction.id], currentOffset != .zero {
+                                            let newRect = CGRect(
+                                                x: rect.origin.x,
+                                                y: rect.origin.y,
+                                                width: rect.width,
+                                                height: rect.height
+                                            )
+                                            let normalizedRect = convertToNormalizedCoordinates(newRect, in: geometry.size)
+                                            onManualRedactionMoved?(redaction, normalizedRect)
+                                        }
+                                        dragOffsets[redaction.id] = .zero
+                                    }
+                            )
+                            .contextMenu {
+                                Button(role: .destructive) {
+                                    onManualRedactionDelete?(redaction)
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
+                            }
+                    }
+                }
+
             }
         }
     }
@@ -91,6 +188,15 @@ struct DetectionOverlayView: View {
         let y = (1 - normalizedRect.origin.y - normalizedRect.height) * size.height
         let width = normalizedRect.width * size.width
         let height = normalizedRect.height * size.height
+
+        return CGRect(x: x, y: y, width: width, height: height)
+    }
+
+    private func convertToNormalizedCoordinates(_ viewRect: CGRect, in size: CGSize) -> CGRect {
+        let x = viewRect.origin.x / size.width
+        let y = 1 - (viewRect.origin.y + viewRect.height) / size.height
+        let width = viewRect.width / size.width
+        let height = viewRect.height / size.height
 
         return CGRect(x: x, y: y, width: width, height: height)
     }
@@ -112,11 +218,68 @@ struct DetectionOverlayView: View {
     }
 }
 
+struct EditableDetectionBox: View {
+    let rect: CGRect
+    let color: Color
+    let fillColor: Color
+    let isSelected: Bool
+    var onTap: () -> Void
+    var onDrag: (CGSize) -> Void
+    var onDragEnd: () -> Void
+    var onResize: (DetectionOverlayView.ResizeCorner, CGSize) -> Void
+    var onResizeEnd: () -> Void
+
+    private let handleSize: CGFloat = 24
+
+    var body: some View {
+        ZStack {
+            // Main rectangle - use highPriorityGesture to win over drawing overlay
+            Rectangle()
+                .stroke(color, lineWidth: isSelected ? 4 : 3)
+                .background(fillColor.opacity(0.3))
+                .frame(width: rect.width, height: rect.height)
+                .position(x: rect.midX, y: rect.midY)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    onTap()
+                }
+                .highPriorityGesture(
+                    DragGesture(minimumDistance: 5)
+                        .onChanged { value in
+                            onDrag(value.translation)
+                        }
+                        .onEnded { _ in
+                            onDragEnd()
+                        }
+                )
+
+            // Resize handles (only show when selected)
+            if isSelected {
+                // Corner handle - bottom right
+                Circle()
+                    .fill(color)
+                    .frame(width: handleSize, height: handleSize)
+                    .position(x: rect.maxX, y: rect.maxY)
+                    .highPriorityGesture(
+                        DragGesture(minimumDistance: 1)
+                            .onChanged { value in
+                                onResize(.bottomRight, value.translation)
+                            }
+                            .onEnded { _ in
+                                onResizeEnd()
+                            }
+                    )
+            }
+        }
+    }
+}
+
 #Preview {
     DetectionOverlayView(
         detections: [],
         manualRedactions: [],
         isDrawingMode: true,
-        drawingRect: .constant(nil)
+        drawingRect: .constant(nil),
+        selectedDetectionId: .constant(nil)
     )
 }

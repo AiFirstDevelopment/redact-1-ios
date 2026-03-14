@@ -23,8 +23,10 @@ import {
 import {
   handleListDetections,
   handleCreateDetections,
+  handleClearDetections,
   handleUpdateDetection,
   handleCreateManualRedaction,
+  handleUpdateManualRedaction,
   handleDeleteManualRedaction,
 } from './routes/detections';
 import {
@@ -157,12 +159,18 @@ export default {
       } else if (path.match(/^\/api\/files\/[^/]+\/detections$/) && method === 'POST') {
         const fileId = path.split('/')[3];
         response = await handleCreateDetections(request, env, fileId);
+      } else if (path.match(/^\/api\/files\/[^/]+\/detections$/) && method === 'DELETE') {
+        const fileId = path.split('/')[3];
+        response = await handleClearDetections(request, env, fileId);
       } else if (path.match(/^\/api\/detections\/[^/]+$/) && method === 'PUT') {
         const id = path.split('/')[3];
         response = await handleUpdateDetection(request, env, id);
       } else if (path.match(/^\/api\/files\/[^/]+\/manual-redactions$/) && method === 'POST') {
         const fileId = path.split('/')[3];
         response = await handleCreateManualRedaction(request, env, fileId);
+      } else if (path.match(/^\/api\/manual-redactions\/[^/]+$/) && method === 'PUT') {
+        const id = path.split('/')[3];
+        response = await handleUpdateManualRedaction(request, env, id);
       } else if (path.match(/^\/api\/manual-redactions\/[^/]+$/) && method === 'DELETE') {
         const id = path.split('/')[3];
         response = await handleDeleteManualRedaction(request, env, id);

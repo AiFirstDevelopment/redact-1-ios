@@ -15,7 +15,7 @@ export async function handleListFiles(request: Request, env: Env, requestId: str
     return error('Request not found', 404);
   }
 
-  const files = await env.DB.prepare('SELECT * FROM files WHERE request_id = ? ORDER BY created_at DESC')
+  const files = await env.DB.prepare('SELECT * FROM files WHERE request_id = ? AND deleted_at IS NULL ORDER BY created_at DESC')
     .bind(requestId)
     .all<EvidenceFile>();
 
@@ -73,7 +73,7 @@ export async function handleUploadFile(request: Request, env: Env, requestId: st
       .run();
 
     // Update request status if it's new
-    await env.DB.prepare("UPDATE requests SET status = 'processing', updated_at = ? WHERE id = ? AND status = 'new'")
+    await env.DB.prepare("UPDATE requests SET status = 'in_progress', updated_at = ? WHERE id = ? AND status = 'new'")
       .bind(timestamp, requestId)
       .run();
 
@@ -90,6 +90,7 @@ export async function handleUploadFile(request: Request, env: Env, requestId: st
 
     return json({ file: newFile }, 201);
   } catch (e) {
+    console.error('handleUploadFile error:', e);
     return error('Failed to upload file');
   }
 }
@@ -113,7 +114,7 @@ export async function handleDeleteFile(request: Request, env: Env, id: string): 
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
 
-  const file = await env.DB.prepare('SELECT * FROM files WHERE id = ?')
+  const file = await env.DB.prepare('SELECT * FROM files WHERE id = ? AND deleted_at IS NULL')
     .bind(id)
     .first<EvidenceFile>();
 
@@ -121,22 +122,18 @@ export async function handleDeleteFile(request: Request, env: Env, id: string): 
     return error('File not found', 404);
   }
 
-  // Delete from R2
-  await env.FILES_BUCKET.delete(file.original_r2_key);
-  if (file.redacted_r2_key) {
-    await env.FILES_BUCKET.delete(file.redacted_r2_key);
-  }
+  const timestamp = now();
 
-  // Delete related records
-  await env.DB.prepare('DELETE FROM manual_redactions WHERE file_id = ?').bind(id).run();
-  await env.DB.prepare('DELETE FROM detections WHERE file_id = ?').bind(id).run();
-  await env.DB.prepare('DELETE FROM files WHERE id = ?').bind(id).run();
+  // Soft delete - set deleted_at timestamp
+  await env.DB.prepare('UPDATE files SET deleted_at = ?, updated_at = ? WHERE id = ?')
+    .bind(timestamp, timestamp, id)
+    .run();
 
   // Audit log
   await env.DB.prepare(
     'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
   )
-    .bind(generateId(), auth.user.id, 'delete', 'file', id, JSON.stringify({ filename: file.filename }), now())
+    .bind(generateId(), auth.user.id, 'delete', 'file', id, JSON.stringify({ filename: file.filename }), timestamp)
     .run();
 
   return json({ success: true });

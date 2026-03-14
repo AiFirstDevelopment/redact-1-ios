@@ -80,6 +80,20 @@ export async function handleCreateRequest(request: Request, env: Env): Promise<R
     const id = generateId();
     const timestamp = now();
 
+    // Determine assignee - supervisors can assign to others
+    let assignedTo = auth.user.id;
+    if (body.assign_to) {
+      if (await isSupervisor(auth.user.id, env)) {
+        // Verify target user exists
+        const targetUser = await env.DB.prepare('SELECT id FROM users WHERE id = ? AND deleted_at IS NULL')
+          .bind(body.assign_to)
+          .first();
+        if (targetUser) {
+          assignedTo = body.assign_to;
+        }
+      }
+    }
+
     await env.DB.prepare(
       `INSERT INTO requests (id, request_number, title, request_date, notes, status, created_by, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
@@ -91,7 +105,7 @@ export async function handleCreateRequest(request: Request, env: Env): Promise<R
         body.request_date,
         body.notes || null,
         'new',
-        auth.user.id,
+        assignedTo,
         timestamp,
         timestamp
       )
@@ -110,6 +124,7 @@ export async function handleCreateRequest(request: Request, env: Env): Promise<R
 
     return json({ request: newRequest }, 201);
   } catch (e) {
+    console.error('handleCreateRequest error:', e);
     return error('Invalid request body');
   }
 }
@@ -293,7 +308,7 @@ export async function handleDeleteRequest(request: Request, env: Env, id: string
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
 
-  const existing = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
+  const existing = await env.DB.prepare('SELECT * FROM requests WHERE id = ? AND archived_at IS NULL')
     .bind(id)
     .first<RequestModel>();
 
@@ -301,34 +316,22 @@ export async function handleDeleteRequest(request: Request, env: Env, id: string
     return error('Request not found', 404);
   }
 
-  // Delete associated files from R2
-  const files = await env.DB.prepare('SELECT original_r2_key, redacted_r2_key FROM files WHERE request_id = ?')
-    .bind(id)
-    .all<{ original_r2_key: string; redacted_r2_key: string | null }>();
+  const timestamp = now();
 
-  for (const file of files.results) {
-    await env.FILES_BUCKET.delete(file.original_r2_key);
-    if (file.redacted_r2_key) {
-      await env.FILES_BUCKET.delete(file.redacted_r2_key);
-    }
-  }
+  // Soft delete - mark request and its files as deleted
+  await env.DB.prepare('UPDATE requests SET archived_at = ?, updated_at = ? WHERE id = ?')
+    .bind(timestamp, timestamp, id)
+    .run();
 
-  // Delete in order to respect foreign keys
-  await env.DB.prepare('DELETE FROM manual_redactions WHERE file_id IN (SELECT id FROM files WHERE request_id = ?)')
-    .bind(id)
+  await env.DB.prepare('UPDATE files SET deleted_at = ?, updated_at = ? WHERE request_id = ?')
+    .bind(timestamp, timestamp, id)
     .run();
-  await env.DB.prepare('DELETE FROM detections WHERE file_id IN (SELECT id FROM files WHERE request_id = ?)')
-    .bind(id)
-    .run();
-  await env.DB.prepare('DELETE FROM files WHERE request_id = ?').bind(id).run();
-  await env.DB.prepare('DELETE FROM exports WHERE request_id = ?').bind(id).run();
-  await env.DB.prepare('DELETE FROM requests WHERE id = ?').bind(id).run();
 
   // Audit log
   await env.DB.prepare(
     'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   )
-    .bind(generateId(), auth.user.id, 'delete', 'request', id, now())
+    .bind(generateId(), auth.user.id, 'delete', 'request', id, timestamp)
     .run();
 
   return json({ success: true });

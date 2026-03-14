@@ -17,12 +17,12 @@ export async function handleLogin(request: Request, env: Env): Promise<Response>
     let user: User | null = null;
 
     if (identifierType === 'employeeId') {
-      user = await env.DB.prepare('SELECT * FROM users WHERE employee_id = ?')
+      user = await env.DB.prepare('SELECT * FROM users WHERE employee_id = ? AND deleted_at IS NULL')
         .bind(identifier)
         .first<User>();
     } else {
       // Default to email
-      user = await env.DB.prepare('SELECT * FROM users WHERE email = ?')
+      user = await env.DB.prepare('SELECT * FROM users WHERE email = ? AND deleted_at IS NULL')
         .bind(identifier)
         .first<User>();
     }
@@ -111,7 +111,7 @@ export async function handleListUsers(request: Request, env: Env): Promise<Respo
   }
 
   const users = await env.DB.prepare(
-    'SELECT id, email, name, role, created_at, updated_at FROM users ORDER BY name ASC'
+    'SELECT id, email, name, role, created_at, updated_at FROM users WHERE deleted_at IS NULL ORDER BY name ASC'
   ).all();
 
   return json({ users: users.results || [] });
@@ -277,7 +277,7 @@ export async function handleDeleteUser(request: Request, env: Env, userId: strin
     return error('Cannot delete your own account');
   }
 
-  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ?')
+  const existing = await env.DB.prepare('SELECT id FROM users WHERE id = ? AND deleted_at IS NULL')
     .bind(userId)
     .first();
 
@@ -285,15 +285,18 @@ export async function handleDeleteUser(request: Request, env: Env, userId: strin
     return error('User not found', 404);
   }
 
-  await env.DB.prepare('DELETE FROM users WHERE id = ?')
-    .bind(userId)
+  const timestamp = now();
+
+  // Soft delete - set deleted_at timestamp
+  await env.DB.prepare('UPDATE users SET deleted_at = ?, updated_at = ? WHERE id = ?')
+    .bind(timestamp, timestamp, userId)
     .run();
 
   // Log the deletion
   await env.DB.prepare(
     'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
   )
-    .bind(generateId(), auth.user.id, 'delete_user', 'user', userId, now())
+    .bind(generateId(), auth.user.id, 'delete_user', 'user', userId, timestamp)
     .run();
 
   return json({ success: true });

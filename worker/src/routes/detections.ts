@@ -84,8 +84,8 @@ export async function handleCreateDetections(request: Request, env: Env, fileId:
       .bind(timestamp, fileId)
       .run();
 
-    // Update request status
-    await env.DB.prepare("UPDATE requests SET status = 'review', updated_at = ? WHERE id = ? AND status = 'processing'")
+    // Update request timestamp (status stays at in_progress until completed)
+    await env.DB.prepare("UPDATE requests SET updated_at = ? WHERE id = ?")
       .bind(timestamp, file.request_id)
       .run();
 
@@ -106,6 +106,42 @@ export async function handleCreateDetections(request: Request, env: Env, fileId:
   }
 }
 
+export async function handleClearDetections(request: Request, env: Env, fileId: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  // Verify file exists
+  const file = await env.DB.prepare('SELECT id FROM files WHERE id = ?')
+    .bind(fileId)
+    .first();
+
+  if (!file) {
+    return error('File not found', 404);
+  }
+
+  // Delete all detections for this file
+  await env.DB.prepare('DELETE FROM detections WHERE file_id = ?')
+    .bind(fileId)
+    .run();
+
+  // Audit log
+  await env.DB.prepare(
+    'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, created_at) VALUES (?, ?, ?, ?, ?, ?)'
+  )
+    .bind(generateId(), auth.user.id, 'clear_detections', 'file', fileId, now())
+    .run();
+
+  return json({ success: true });
+}
+
+interface UpdateDetectionRequest {
+  status?: 'approved' | 'rejected';
+  bbox_x?: number;
+  bbox_y?: number;
+  bbox_width?: number;
+  bbox_height?: number;
+}
+
 export async function handleUpdateDetection(request: Request, env: Env, id: string): Promise<Response> {
   const auth = await authenticate(request, env);
   if (!isAuthContext(auth)) return auth;
@@ -119,24 +155,41 @@ export async function handleUpdateDetection(request: Request, env: Env, id: stri
   }
 
   try {
-    const body: UpdateDetectionBody = await request.json();
-
-    if (!body.status || !['approved', 'rejected'].includes(body.status)) {
-      return error('status must be "approved" or "rejected"');
-    }
-
+    const body: UpdateDetectionRequest = await request.json();
     const timestamp = now();
 
-    await env.DB.prepare('UPDATE detections SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?')
-      .bind(body.status, auth.user.id, timestamp, id)
-      .run();
+    // Handle status update
+    if (body.status) {
+      if (!['approved', 'rejected'].includes(body.status)) {
+        return error('status must be "approved" or "rejected"');
+      }
 
-    // Audit log
-    await env.DB.prepare(
-      'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
-    )
-      .bind(generateId(), auth.user.id, 'review_detection', 'detection', id, JSON.stringify({ status: body.status }), timestamp)
-      .run();
+      await env.DB.prepare('UPDATE detections SET status = ?, reviewed_by = ?, reviewed_at = ? WHERE id = ?')
+        .bind(body.status, auth.user.id, timestamp, id)
+        .run();
+
+      // Audit log
+      await env.DB.prepare(
+        'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      )
+        .bind(generateId(), auth.user.id, 'review_detection', 'detection', id, JSON.stringify({ status: body.status }), timestamp)
+        .run();
+    }
+
+    // Handle bounding box update
+    if (body.bbox_x !== undefined && body.bbox_y !== undefined &&
+        body.bbox_width !== undefined && body.bbox_height !== undefined) {
+      await env.DB.prepare('UPDATE detections SET bbox_x = ?, bbox_y = ?, bbox_width = ?, bbox_height = ? WHERE id = ?')
+        .bind(body.bbox_x, body.bbox_y, body.bbox_width, body.bbox_height, id)
+        .run();
+
+      // Audit log
+      await env.DB.prepare(
+        'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      )
+        .bind(generateId(), auth.user.id, 'move_detection', 'detection', id, JSON.stringify({ bbox_x: body.bbox_x, bbox_y: body.bbox_y, bbox_width: body.bbox_width, bbox_height: body.bbox_height }), timestamp)
+        .run();
+    }
 
     const updated = await env.DB.prepare('SELECT * FROM detections WHERE id = ?')
       .bind(id)
@@ -191,6 +244,45 @@ export async function handleCreateManualRedaction(request: Request, env: Env, fi
       .first<ManualRedaction>();
 
     return json({ manual_redaction: redaction }, 201);
+  } catch (e) {
+    return error('Invalid request body');
+  }
+}
+
+export async function handleUpdateManualRedaction(request: Request, env: Env, id: string): Promise<Response> {
+  const auth = await authenticate(request, env);
+  if (!isAuthContext(auth)) return auth;
+
+  const redaction = await env.DB.prepare('SELECT * FROM manual_redactions WHERE id = ?')
+    .bind(id)
+    .first<ManualRedaction>();
+
+  if (!redaction) {
+    return error('Manual redaction not found', 404);
+  }
+
+  try {
+    const body: { bbox_x?: number; bbox_y?: number; bbox_width?: number; bbox_height?: number } = await request.json();
+
+    if (body.bbox_x !== undefined && body.bbox_y !== undefined &&
+        body.bbox_width !== undefined && body.bbox_height !== undefined) {
+      await env.DB.prepare('UPDATE manual_redactions SET bbox_x = ?, bbox_y = ?, bbox_width = ?, bbox_height = ? WHERE id = ?')
+        .bind(body.bbox_x, body.bbox_y, body.bbox_width, body.bbox_height, id)
+        .run();
+
+      // Audit log
+      await env.DB.prepare(
+        'INSERT INTO audit_logs (id, user_id, action, entity_type, entity_id, details, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)'
+      )
+        .bind(generateId(), auth.user.id, 'move_manual_redaction', 'manual_redaction', id, JSON.stringify(body), now())
+        .run();
+    }
+
+    const updated = await env.DB.prepare('SELECT * FROM manual_redactions WHERE id = ?')
+      .bind(id)
+      .first<ManualRedaction>();
+
+    return json({ manual_redaction: updated });
   } catch (e) {
     return error('Invalid request body');
   }

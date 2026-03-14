@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT UNIQUE NOT NULL,
   name TEXT NOT NULL,
   password_hash TEXT NOT NULL,
+  deleted_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );
@@ -48,6 +49,7 @@ CREATE TABLE IF NOT EXISTS files (
   redacted_r2_key TEXT,
   status TEXT NOT NULL CHECK (status IN ('uploaded', 'processing', 'detected', 'reviewed', 'exported')),
   uploaded_by TEXT NOT NULL REFERENCES users(id),
+  deleted_at INTEGER,
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL
 );

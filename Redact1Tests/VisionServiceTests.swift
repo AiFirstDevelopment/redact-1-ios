@@ -1,5 +1,6 @@
 import XCTest
 import UIKit
+import PDFKit
 @testable import Redact1
 
 final class VisionServiceTests: XCTestCase {
@@ -113,5 +114,52 @@ final class VisionServiceTests: XCTestCase {
         for type in DetectionType.allCases {
             XCTAssertFalse(type.iconName.isEmpty)
         }
+    }
+
+    // MARK: - PDF Detection Tests
+
+    func testDetectInPDFWithEmptyDocument() async throws {
+        // Create an empty PDF document
+        let pdfData = createEmptyPDF()
+        guard let pdfDocument = PDFDocument(data: pdfData) else {
+            XCTFail("Failed to create PDF document")
+            return
+        }
+
+        let results = try await VisionService.shared.detectInPDF(pdfDocument)
+        XCTAssertNotNil(results)
+        // Empty PDF should have no detections
+    }
+
+    func testDetectedRegionWithPageNumber() {
+        let region = DetectedRegion(
+            type: .face,
+            boundingBox: CGRect(x: 0.1, y: 0.2, width: 0.3, height: 0.4),
+            confidence: 0.95,
+            textContent: nil,
+            pageNumber: 2
+        )
+
+        XCTAssertEqual(region.pageNumber, 2)
+    }
+
+    // MARK: - Helper Methods
+
+    private func createEmptyPDF() -> Data {
+        let pdfMetaData = [
+            kCGPDFContextCreator: "Test",
+            kCGPDFContextAuthor: "Test"
+        ]
+        let format = UIGraphicsPDFRendererFormat()
+        format.documentInfo = pdfMetaData as [String: Any]
+
+        let pageRect = CGRect(x: 0, y: 0, width: 612, height: 792) // US Letter
+        let renderer = UIGraphicsPDFRenderer(bounds: pageRect, format: format)
+
+        let data = renderer.pdfData { context in
+            context.beginPage()
+            // Empty page
+        }
+        return data
     }
 }

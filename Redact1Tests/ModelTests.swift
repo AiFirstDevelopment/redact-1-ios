@@ -499,7 +499,8 @@ final class ModelTests: XCTestCase {
             requestNumber: "FOIA-2024-001",
             title: "Test Request",
             requestDate: 1234567890,
-            notes: "Some notes"
+            notes: "Some notes",
+            assignTo: nil
         )
 
         let data = try JSONEncoder().encode(body)
