@@ -1,0 +1,459 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		R1000001 /* Redact1App.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000002 /* Redact1App.swift */; };
+		R1000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000004 /* ContentView.swift */; };
+		R1000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = R1000006 /* Assets.xcassets */; };
+		R1000010 /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000011 /* User.swift */; };
+		R1000012 /* Request.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000013 /* Request.swift */; };
+		R1000014 /* EvidenceFile.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000015 /* EvidenceFile.swift */; };
+		R1000016 /* Detection.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000017 /* Detection.swift */; };
+		R1000020 /* APIService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000021 /* APIService.swift */; };
+		R1000022 /* AuthService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000023 /* AuthService.swift */; };
+		R1000024 /* VisionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000025 /* VisionService.swift */; };
+		R1000026 /* RedactionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000027 /* RedactionService.swift */; };
+		R1000030 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000031 /* LoginView.swift */; };
+		R1000032 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000033 /* MainTabView.swift */; };
+		R1000034 /* RequestListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000035 /* RequestListView.swift */; };
+		R1000036 /* RequestFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000037 /* RequestFormView.swift */; };
+		R1000038 /* RequestDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000039 /* RequestDetailView.swift */; };
+		R1000040 /* FileUploadView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000041 /* FileUploadView.swift */; };
+		R1000042 /* ImageReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000043 /* ImageReviewView.swift */; };
+		R1000044 /* PDFReviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000045 /* PDFReviewView.swift */; };
+		R1000046 /* ExportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000047 /* ExportView.swift */; };
+		R1000048 /* AuditLogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000049 /* AuditLogView.swift */; };
+		R1000050 /* UsersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000051 /* UsersView.swift */; };
+		R1000052 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000053 /* SettingsView.swift */; };
+		R1000060 /* DetectionOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000061 /* DetectionOverlay.swift */; };
+		R1000062 /* FileRow.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000063 /* FileRow.swift */; };
+		R1000064 /* RedactionPreview.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000065 /* RedactionPreview.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		R1000002 /* Redact1App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redact1App.swift; sourceTree = "<group>"; };
+		R1000004 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		R1000006 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		R1000007 /* Redact1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Redact1.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		R1000011 /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		R1000013 /* Request.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Request.swift; sourceTree = "<group>"; };
+		R1000015 /* EvidenceFile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvidenceFile.swift; sourceTree = "<group>"; };
+		R1000017 /* Detection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Detection.swift; sourceTree = "<group>"; };
+		R1000021 /* APIService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIService.swift; sourceTree = "<group>"; };
+		R1000023 /* AuthService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthService.swift; sourceTree = "<group>"; };
+		R1000025 /* VisionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionService.swift; sourceTree = "<group>"; };
+		R1000027 /* RedactionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionService.swift; sourceTree = "<group>"; };
+		R1000031 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		R1000033 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		R1000035 /* RequestListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestListView.swift; sourceTree = "<group>"; };
+		R1000037 /* RequestFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestFormView.swift; sourceTree = "<group>"; };
+		R1000039 /* RequestDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestDetailView.swift; sourceTree = "<group>"; };
+		R1000041 /* FileUploadView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileUploadView.swift; sourceTree = "<group>"; };
+		R1000043 /* ImageReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageReviewView.swift; sourceTree = "<group>"; };
+		R1000045 /* PDFReviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PDFReviewView.swift; sourceTree = "<group>"; };
+		R1000047 /* ExportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportView.swift; sourceTree = "<group>"; };
+		R1000049 /* AuditLogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuditLogView.swift; sourceTree = "<group>"; };
+		R1000051 /* UsersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UsersView.swift; sourceTree = "<group>"; };
+		R1000053 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		R1000061 /* DetectionOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetectionOverlay.swift; sourceTree = "<group>"; };
+		R1000063 /* FileRow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileRow.swift; sourceTree = "<group>"; };
+		R1000065 /* RedactionPreview.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedactionPreview.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		R1000008 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		R1000100 = {
+			isa = PBXGroup;
+			children = (
+				R1000101 /* Redact1 */,
+				R1000102 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		R1000101 /* Redact1 */ = {
+			isa = PBXGroup;
+			children = (
+				R1000002 /* Redact1App.swift */,
+				R1000004 /* ContentView.swift */,
+				R1000110 /* Models */,
+				R1000111 /* Services */,
+				R1000112 /* Views */,
+				R1000006 /* Assets.xcassets */,
+			);
+			path = Redact1;
+			sourceTree = "<group>";
+		};
+		R1000102 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				R1000007 /* Redact1.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		R1000110 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				R1000011 /* User.swift */,
+				R1000013 /* Request.swift */,
+				R1000015 /* EvidenceFile.swift */,
+				R1000017 /* Detection.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		R1000111 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				R1000021 /* APIService.swift */,
+				R1000023 /* AuthService.swift */,
+				R1000025 /* VisionService.swift */,
+				R1000027 /* RedactionService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		R1000112 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				R1000031 /* LoginView.swift */,
+				R1000033 /* MainTabView.swift */,
+				R1000035 /* RequestListView.swift */,
+				R1000037 /* RequestFormView.swift */,
+				R1000039 /* RequestDetailView.swift */,
+				R1000041 /* FileUploadView.swift */,
+				R1000043 /* ImageReviewView.swift */,
+				R1000045 /* PDFReviewView.swift */,
+				R1000047 /* ExportView.swift */,
+				R1000049 /* AuditLogView.swift */,
+				R1000051 /* UsersView.swift */,
+				R1000053 /* SettingsView.swift */,
+				R1000113 /* Components */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		R1000113 /* Components */ = {
+			isa = PBXGroup;
+			children = (
+				R1000061 /* DetectionOverlay.swift */,
+				R1000063 /* FileRow.swift */,
+				R1000065 /* RedactionPreview.swift */,
+			);
+			path = Components;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		R1000200 /* Redact1 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = R1000300 /* Build configuration list for PBXNativeTarget "Redact1" */;
+			buildPhases = (
+				R1000201 /* Sources */,
+				R1000008 /* Frameworks */,
+				R1000202 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Redact1;
+			productName = Redact1;
+			productReference = R1000007 /* Redact1.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		R1000400 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1500;
+				LastUpgradeCheck = 1500;
+				TargetAttributes = {
+					R1000200 = {
+						CreatedOnToolsVersion = 15.0;
+					};
+				};
+			};
+			buildConfigurationList = R1000401 /* Build configuration list for PBXProject "Redact1" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = R1000100;
+			productRefGroup = R1000102 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				R1000200 /* Redact1 */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		R1000202 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				R1000005 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		R1000201 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				R1000001 /* Redact1App.swift in Sources */,
+				R1000003 /* ContentView.swift in Sources */,
+				R1000010 /* User.swift in Sources */,
+				R1000012 /* Request.swift in Sources */,
+				R1000014 /* EvidenceFile.swift in Sources */,
+				R1000016 /* Detection.swift in Sources */,
+				R1000020 /* APIService.swift in Sources */,
+				R1000022 /* AuthService.swift in Sources */,
+				R1000024 /* VisionService.swift in Sources */,
+				R1000026 /* RedactionService.swift in Sources */,
+				R1000030 /* LoginView.swift in Sources */,
+				R1000032 /* MainTabView.swift in Sources */,
+				R1000034 /* RequestListView.swift in Sources */,
+				R1000036 /* RequestFormView.swift in Sources */,
+				R1000038 /* RequestDetailView.swift in Sources */,
+				R1000040 /* FileUploadView.swift in Sources */,
+				R1000042 /* ImageReviewView.swift in Sources */,
+				R1000044 /* PDFReviewView.swift in Sources */,
+				R1000046 /* ExportView.swift in Sources */,
+				R1000048 /* AuditLogView.swift in Sources */,
+				R1000050 /* UsersView.swift in Sources */,
+				R1000052 /* SettingsView.swift in Sources */,
+				R1000060 /* DetectionOverlay.swift in Sources */,
+				R1000062 /* FileRow.swift in Sources */,
+				R1000064 /* RedactionPreview.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		R1000500 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		R1000501 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		R1000502 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aifirst.Redact1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		R1000503 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_PREVIEWS = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.aifirst.Redact1;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		R1000300 /* Build configuration list for PBXNativeTarget "Redact1" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				R1000502 /* Debug */,
+				R1000503 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		R1000401 /* Build configuration list for PBXProject "Redact1" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				R1000500 /* Debug */,
+				R1000501 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = R1000400 /* Project object */;
+}
