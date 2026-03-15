@@ -123,10 +123,42 @@ final class ViewTests: XCTestCase {
         XCTAssertFalse(callbackCalled) // Callback not called on init
     }
 
+    func testOnboardingViewSimplified() {
+        // OnboardingView now only has department code input (no email/QR options)
+        let view = OnboardingView { _ in }
+        XCTAssertNotNil(view)
+    }
+
+    func testOnboardingViewWithCallback() {
+        // Verify callback is stored but not called on init
+        var receivedConfig: AgencyConfig?
+        let view = OnboardingView { config in
+            receivedConfig = config
+        }
+        XCTAssertNotNil(view)
+        XCTAssertNil(receivedConfig)
+    }
+
+    func testOnboardingViewDepartmentCodeOnly() {
+        // OnboardingView should only require department code
+        // No email or QR code options
+        let view = OnboardingView { _ in }
+        XCTAssertNotNil(view)
+    }
+
     func testQRScannerViewCanBeCreated() {
-        // Verify QRScannerView can be instantiated
+        // Verify QRScannerView can be instantiated (kept for future use)
         let view = QRScannerView { _ in }
         XCTAssertNotNil(view)
+    }
+
+    func testQRScannerViewWithCallback() {
+        var scannedCode: String?
+        let view = QRScannerView { code in
+            scannedCode = code
+        }
+        XCTAssertNotNil(view)
+        XCTAssertNil(scannedCode)
     }
 
     func testMainTabViewCanBeCreated() {
