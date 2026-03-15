@@ -171,8 +171,9 @@ class VisionService {
                 page.draw(with: .mediaBox, to: context.cgContext)
             }
 
-            // Run face detection on rendered page
+            // Run detection on rendered page image
             if let cgImage = image.cgImage {
+                // Face detection
                 let faceResults = try await detectFaces(in: cgImage)
                 let adjustedFaces = faceResults.map { region in
                     DetectedRegion(
@@ -184,14 +185,8 @@ class VisionService {
                     )
                 }
                 allRegions.append(contentsOf: adjustedFaces)
-            }
 
-            // Get text for PII detection
-            if let text = page.string, !text.isEmpty {
-                let textRegions = detectPIIInText(text, pageNumber: pageIndex + 1)
-                allRegions.append(contentsOf: textRegions)
-            } else if let cgImage = image.cgImage {
-                // Scanned PDF - OCR for text
+                // Always use OCR for text/PII detection (gives proper bounding boxes)
                 let textResults = try await detectText(in: cgImage)
                 let adjustedResults = textResults.map { region in
                     DetectedRegion(

@@ -5,7 +5,7 @@ struct RequestDetailView: View {
 
     @EnvironmentObject var authService: AuthService
     @State private var request: RecordsRequest?
-    @State private var files: [EvidenceFile] = []
+    @State private var file: EvidenceFile?
     @State private var isLoading = false
     @State private var error: String?
     @State private var showingUploadSheet = false
@@ -13,6 +13,8 @@ struct RequestDetailView: View {
     @State private var showingStatusPicker = false
     @State private var showingReassignSheet = false
     @State private var showingArchiveConfirmation = false
+    @State private var showingPreview = false
+    @State private var showingDeleteConfirmation = false
     @State private var isArchiving = false
 
     private var isAdmin: Bool {
@@ -57,38 +59,37 @@ struct RequestDetailView: View {
                     }
                 }
 
-                // Files section
-                Section {
-                    if files.isEmpty {
-                        ContentUnavailableView(
-                            "No Files",
-                            systemImage: "doc",
-                            description: Text("Upload files to begin redaction")
-                        )
-                    } else {
-                        ForEach(files) { file in
-                            NavigationLink(destination: fileDestination(for: file)) {
-                                FileRow(file: file)
+                // File section
+                Section("File") {
+                    if let file = file {
+                        NavigationLink(destination: fileDestination(for: file)) {
+                            FileRow(file: file)
+                        }
+                        .swipeActions(edge: .trailing) {
+                            Button(role: .destructive) {
+                                showingDeleteConfirmation = true
+                            } label: {
+                                Label("Delete", systemImage: "trash")
                             }
                         }
-                        .onDelete(perform: deleteFiles)
-                    }
-                } header: {
-                    HStack {
-                        Text("Files")
-                        Spacer()
+                    } else {
                         Button(action: { showingUploadSheet = true }) {
-                            Image(systemName: "plus.circle")
+                            Label("Upload PDF", systemImage: "doc.badge.plus")
                         }
                     }
                 }
 
                 // Actions section
                 Section("Actions") {
-                    Button(action: { showingExportSheet = true }) {
-                        Label("Export Redacted Files", systemImage: "square.and.arrow.up")
+                    Button(action: { showingPreview = true }) {
+                        Label("Preview Redacted", systemImage: "eye")
                     }
-                    .disabled(files.filter { $0.status == .reviewed }.isEmpty)
+                    .disabled(file == nil)
+
+                    Button(action: { showingExportSheet = true }) {
+                        Label("Export Redacted", systemImage: "square.and.arrow.up")
+                    }
+                    .disabled(file == nil)
 
                     if isAdmin {
                         Button(action: { showingArchiveConfirmation = true }) {
@@ -105,13 +106,26 @@ struct RequestDetailView: View {
         }
         .sheet(isPresented: $showingUploadSheet) {
             FileUploadView(requestId: requestId) { newFile in
-                files.insert(newFile, at: 0)
+                file = newFile
             }
         }
         .sheet(isPresented: $showingExportSheet) {
-            if let request = request {
-                ExportView(request: request, files: files.filter { $0.status == .reviewed })
+            if let request = request, let file = file {
+                ExportView(request: request, files: [file])
             }
+        }
+        .fullScreenCover(isPresented: $showingPreview) {
+            if let file = file {
+                CollectionPreviewView(files: [file])
+            }
+        }
+        .confirmationDialog("Delete File?", isPresented: $showingDeleteConfirmation) {
+            Button("Delete", role: .destructive) {
+                Task { await deleteFile() }
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This cannot be undone.")
         }
         .task {
             await loadData()
@@ -188,7 +202,8 @@ struct RequestDetailView: View {
             async let filesTask = APIService.shared.listFiles(requestId: requestId)
 
             request = try await requestTask
-            files = try await filesTask
+            let files = try await filesTask
+            file = files.first
         } catch {
             self.error = error.localizedDescription
         }
@@ -196,17 +211,14 @@ struct RequestDetailView: View {
         isLoading = false
     }
 
-    private func deleteFiles(at offsets: IndexSet) {
-        Task {
-            for index in offsets {
-                let file = files[index]
-                do {
-                    try await APIService.shared.deleteFile(file.id)
-                    files.remove(at: index)
-                } catch {
-                    self.error = error.localizedDescription
-                }
-            }
+    private func deleteFile() async {
+        guard let currentFile = file else { return }
+
+        do {
+            try await APIService.shared.deleteFile(currentFile.id)
+            file = nil
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 }

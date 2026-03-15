@@ -1,5 +1,272 @@
 import SwiftUI
 
+// MARK: - Simple Draggable Rectangle
+
+struct DraggableRect: View {
+    let id: String
+    let normalizedBounds: CGRect
+    let containerSize: CGSize
+    let strokeColor: Color
+    let fillColor: Color
+    let isSelected: Bool
+    let onSelect: () -> Void
+    let onMove: (CGRect) -> Void  // Returns new normalized bounds
+
+    @State private var dragOffset: CGSize = .zero
+    @State private var isDragging = false
+
+    // Convert normalized (0-1, bottom-left origin) to view coordinates (top-left origin)
+    private var viewBounds: CGRect {
+        CGRect(
+            x: normalizedBounds.origin.x * containerSize.width,
+            y: (1 - normalizedBounds.origin.y - normalizedBounds.height) * containerSize.height,
+            width: normalizedBounds.width * containerSize.width,
+            height: normalizedBounds.height * containerSize.height
+        )
+    }
+
+    private var currentPosition: CGPoint {
+        CGPoint(
+            x: viewBounds.midX + dragOffset.width,
+            y: viewBounds.midY + dragOffset.height
+        )
+    }
+
+    var body: some View {
+        Rectangle()
+            .stroke(strokeColor, lineWidth: isSelected ? 4 : 2)
+            .background(fillColor.opacity(isDragging ? 0.5 : 0.3))
+            .frame(width: viewBounds.width, height: viewBounds.height)
+            .position(currentPosition)
+            .gesture(
+                DragGesture(minimumDistance: 5)
+                    .onChanged { value in
+                        isDragging = true
+                        dragOffset = value.translation
+                    }
+                    .onEnded { value in
+                        isDragging = false
+
+                        // Calculate new view bounds
+                        let newViewBounds = CGRect(
+                            x: viewBounds.origin.x + value.translation.width,
+                            y: viewBounds.origin.y + value.translation.height,
+                            width: viewBounds.width,
+                            height: viewBounds.height
+                        )
+
+                        // Convert back to normalized coordinates
+                        let newNormalized = CGRect(
+                            x: newViewBounds.origin.x / containerSize.width,
+                            y: 1 - (newViewBounds.origin.y + newViewBounds.height) / containerSize.height,
+                            width: newViewBounds.width / containerSize.width,
+                            height: newViewBounds.height / containerSize.height
+                        )
+
+                        dragOffset = .zero
+                        onMove(newNormalized)
+                    }
+            )
+            .onTapGesture {
+                onSelect()
+            }
+    }
+}
+
+// MARK: - Simple Detection Overlay
+
+struct SimpleDetectionOverlay: View {
+    @Binding var detections: [Detection]
+    @Binding var manualRedactions: [ManualRedaction]
+    @Binding var selectedDetectionId: String?
+    let isDrawingMode: Bool
+    let onManualRedactionCreated: (CGRect) -> Void
+    let onManualRedactionDeleted: (String) -> Void
+
+    @State private var drawStart: CGPoint?
+    @State private var drawCurrent: CGPoint?
+    @State private var isDrawing = false
+    @State private var redactionToDelete: ManualRedaction?
+
+    private func drawingGesture(in size: CGSize) -> some Gesture {
+        LongPressGesture(minimumDuration: 0.3)
+            .sequenced(before: DragGesture(minimumDistance: 1))
+            .onChanged { value in
+                switch value {
+                case .first(true):
+                    break
+                case .second(true, let drag):
+                    if let drag = drag {
+                        if drawStart == nil {
+                            drawStart = drag.startLocation
+                        }
+                        drawCurrent = drag.location
+                        isDrawing = true
+                    }
+                default:
+                    break
+                }
+            }
+            .onEnded { value in
+                if case .second(true, let drag) = value, let drag = drag, let start = drawStart {
+                    let current = drag.location
+                    let minX = min(start.x, current.x)
+                    let minY = min(start.y, current.y)
+                    let width = abs(current.x - start.x)
+                    let height = abs(current.y - start.y)
+
+                    if width > 20 && height > 20 {
+                        let normalized = CGRect(
+                            x: minX / size.width,
+                            y: 1 - (minY + height) / size.height,
+                            width: width / size.width,
+                            height: height / size.height
+                        )
+                        onManualRedactionCreated(normalized)
+                    }
+                }
+
+                drawStart = nil
+                drawCurrent = nil
+                isDrawing = false
+            }
+    }
+
+    var body: some View {
+        GeometryReader { geometry in
+            ZStack {
+                // Drawing preview
+                if isDrawing, let start = drawStart, let current = drawCurrent {
+                    let rect = CGRect(
+                        x: min(start.x, current.x),
+                        y: min(start.y, current.y),
+                        width: abs(current.x - start.x),
+                        height: abs(current.y - start.y)
+                    )
+                    Rectangle()
+                        .stroke(Color.purple, lineWidth: 2)
+                        .background(Color.purple.opacity(0.3))
+                        .frame(width: rect.width, height: rect.height)
+                        .position(x: rect.midX, y: rect.midY)
+                        .allowsHitTesting(false)
+                }
+
+                // Manual redaction rectangles
+                ForEach(manualRedactions) { redaction in
+                    if let bounds = redaction.boundingBox {
+                        DraggableRect(
+                            id: redaction.id,
+                            normalizedBounds: bounds,
+                            containerSize: geometry.size,
+                            strokeColor: .purple,
+                            fillColor: .purple,
+                            isSelected: false,
+                            onSelect: {
+                                redactionToDelete = redaction
+                            },
+                            onMove: { newBounds in
+                                updateManualRedaction(redaction, newBounds: newBounds)
+                            }
+                        )
+                    }
+                }
+
+                // Detection rectangles
+                ForEach(detections) { detection in
+                    if let bounds = detection.boundingBox {
+                        DraggableRect(
+                            id: detection.id,
+                            normalizedBounds: bounds,
+                            containerSize: geometry.size,
+                            strokeColor: strokeColor(for: detection.status),
+                            fillColor: fillColor(for: detection.status),
+                            isSelected: selectedDetectionId == detection.id,
+                            onSelect: {
+                                selectedDetectionId = detection.id
+                            },
+                            onMove: { newBounds in
+                                updateDetection(detection, newBounds: newBounds)
+                            }
+                        )
+                    }
+                }
+            }
+            .confirmationDialog(
+                "Delete Redaction",
+                isPresented: Binding(
+                    get: { redactionToDelete != nil },
+                    set: { if !$0 { redactionToDelete = nil } }
+                ),
+                presenting: redactionToDelete
+            ) { redaction in
+                Button("Delete", role: .destructive) {
+                    onManualRedactionDeleted(redaction.id)
+                    redactionToDelete = nil
+                }
+                Button("Cancel", role: .cancel) {
+                    redactionToDelete = nil
+                }
+            } message: { _ in
+                Text("Are you sure you want to delete this redaction?")
+            }
+            .contentShape(Rectangle())
+            .simultaneousGesture(isDrawingMode ? drawingGesture(in: geometry.size) : nil)
+        }
+    }
+
+    private func updateDetection(_ detection: Detection, newBounds: CGRect) {
+        if let index = detections.firstIndex(where: { $0.id == detection.id }) {
+            let old = detections[index]
+            detections[index] = Detection(
+                id: old.id,
+                fileId: old.fileId,
+                detectionType: old.detectionType,
+                bboxX: newBounds.origin.x,
+                bboxY: newBounds.origin.y,
+                bboxWidth: newBounds.width,
+                bboxHeight: newBounds.height,
+                pageNumber: old.pageNumber,
+                textStart: old.textStart,
+                textEnd: old.textEnd,
+                textContent: old.textContent,
+                confidence: old.confidence,
+                status: old.status,
+                reviewedBy: old.reviewedBy,
+                reviewedAt: old.reviewedAt,
+                createdAt: old.createdAt
+            )
+        }
+    }
+
+    private func updateManualRedaction(_ redaction: ManualRedaction, newBounds: CGRect) {
+        if let index = manualRedactions.firstIndex(where: { $0.id == redaction.id }) {
+            let old = manualRedactions[index]
+            manualRedactions[index] = ManualRedaction(
+                id: old.id,
+                fileId: old.fileId,
+                redactionType: old.redactionType,
+                bboxX: newBounds.origin.x,
+                bboxY: newBounds.origin.y,
+                bboxWidth: newBounds.width,
+                bboxHeight: newBounds.height,
+                pageNumber: old.pageNumber,
+                createdBy: old.createdBy,
+                createdAt: old.createdAt
+            )
+        }
+    }
+
+    private func strokeColor(for status: DetectionStatus) -> Color {
+        .orange
+    }
+
+    private func fillColor(for status: DetectionStatus) -> Color {
+        .orange
+    }
+}
+
+// MARK: - Legacy API Compatibility (for existing views that use DetectionOverlayView)
+
 struct DetectionOverlayView: View {
     let detections: [Detection]
     let manualRedactions: [ManualRedaction]
@@ -11,275 +278,61 @@ struct DetectionOverlayView: View {
     var onManualRedactionDelete: ((ManualRedaction) -> Void)?
     @Binding var selectedDetectionId: String?
 
-    @State private var dragStart: CGPoint?
-    @State private var dragOffsets: [String: CGSize] = [:]
-    @State private var resizeOffsets: [String: CGSize] = [:]
-    @State private var activeResizeCorner: ResizeCorner?
-
-    enum ResizeCorner {
-        case topLeft, topRight, bottomLeft, bottomRight
-    }
-
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Drawing overlay (FIRST so it's behind detection boxes)
-                if isDrawingMode {
-                    Color.clear
-                        .contentShape(Rectangle())
-                        .gesture(
-                            DragGesture(minimumDistance: 1)
-                                .onChanged { value in
-                                    if dragStart == nil {
-                                        dragStart = value.startLocation
-                                    }
-                                    guard let start = dragStart else { return }
-                                    let current = value.location
+                // Detection rectangles (display only)
+                ForEach(detections) { detection in
+                    if let bounds = detection.boundingBox {
+                        let viewBounds = convertToView(bounds, in: geometry.size)
+                        Rectangle()
+                            .stroke(strokeColor(for: detection.status), lineWidth: selectedDetectionId == detection.id ? 4 : 2)
+                            .background(fillColor(for: detection.status).opacity(0.3))
+                            .frame(width: viewBounds.width, height: viewBounds.height)
+                            .position(x: viewBounds.midX, y: viewBounds.midY)
+                    }
+                }
 
-                                    let minX = min(start.x, current.x)
-                                    let minY = min(start.y, current.y)
-                                    let width = abs(current.x - start.x)
-                                    let height = abs(current.y - start.y)
-
-                                    drawingRect = CGRect(x: minX, y: minY, width: width, height: height)
-                                }
-                                .onEnded { value in
-                                    if let rect = drawingRect, rect.width > 10 && rect.height > 10 {
-                                        // Convert to normalized coordinates
-                                        let normalizedRect = CGRect(
-                                            x: rect.origin.x / geometry.size.width,
-                                            y: 1 - (rect.origin.y + rect.height) / geometry.size.height,
-                                            width: rect.width / geometry.size.width,
-                                            height: rect.height / geometry.size.height
-                                        )
-                                        onDrawComplete?(normalizedRect)
-                                    }
-                                    dragStart = nil
-                                    drawingRect = nil
-                                }
-                        )
-
-                    // Drawing rect preview
-                    if let rect = drawingRect {
+                // Manual redaction rectangles (display only)
+                ForEach(manualRedactions) { redaction in
+                    if let bounds = redaction.boundingBox {
+                        let viewBounds = convertToView(bounds, in: geometry.size)
                         Rectangle()
                             .stroke(Color.purple, lineWidth: 2)
                             .background(Color.purple.opacity(0.3))
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
-                            .allowsHitTesting(false)
+                            .frame(width: viewBounds.width, height: viewBounds.height)
+                            .position(x: viewBounds.midX, y: viewBounds.midY)
                     }
                 }
-
-                // Detection boxes (on top so they can be tapped)
-                ForEach(Array(detections.enumerated()), id: \.element.id) { index, detection in
-                    if let bbox = detection.boundingBox, bbox.width > 0, bbox.height > 0 {
-                        let baseRect = convertToViewCoordinates(bbox, in: geometry.size)
-                        let offset = dragOffsets[detection.id] ?? .zero
-                        let resize = resizeOffsets[detection.id] ?? .zero
-                        let rect = CGRect(
-                            x: baseRect.origin.x + offset.width,
-                            y: baseRect.origin.y + offset.height,
-                            width: max(30, baseRect.width + resize.width),
-                            height: max(30, baseRect.height + resize.height)
-                        )
-
-                        EditableDetectionBox(
-                            rect: rect,
-                            color: strokeColor(for: detection.status),
-                            fillColor: fillColor(for: detection.status),
-                            isSelected: selectedDetectionId == detection.id,
-                            onTap: {
-                                selectedDetectionId = detection.id
-                            },
-                            onDrag: { offset in
-                                dragOffsets[detection.id] = offset
-                            },
-                            onDragEnd: {
-                                if let offset = dragOffsets[detection.id], offset != .zero {
-                                    let newRect = CGRect(
-                                        x: rect.origin.x,
-                                        y: rect.origin.y,
-                                        width: rect.width,
-                                        height: rect.height
-                                    )
-                                    let normalizedRect = convertToNormalizedCoordinates(newRect, in: geometry.size)
-                                    onDetectionMoved?(detection, normalizedRect)
-                                }
-                                dragOffsets[detection.id] = .zero
-                            },
-                            onResize: { corner, delta in
-                                resizeOffsets[detection.id] = delta
-                            },
-                            onResizeEnd: {
-                                if let resize = resizeOffsets[detection.id], resize != .zero {
-                                    let newRect = CGRect(
-                                        x: rect.origin.x,
-                                        y: rect.origin.y,
-                                        width: rect.width,
-                                        height: rect.height
-                                    )
-                                    let normalizedRect = convertToNormalizedCoordinates(newRect, in: geometry.size)
-                                    onDetectionMoved?(detection, normalizedRect)
-                                }
-                                resizeOffsets[detection.id] = .zero
-                            }
-                        )
-                        .zIndex(selectedDetectionId == detection.id ? 100 : Double(index))
-                    }
-                }
-
-                // Manual redaction boxes
-                ForEach(manualRedactions) { redaction in
-                    if let bbox = redaction.boundingBox {
-                        let baseRect = convertToViewCoordinates(bbox, in: geometry.size)
-                        let offset = dragOffsets[redaction.id] ?? .zero
-                        let rect = CGRect(
-                            x: baseRect.origin.x + offset.width,
-                            y: baseRect.origin.y + offset.height,
-                            width: baseRect.width,
-                            height: baseRect.height
-                        )
-
-                        Rectangle()
-                            .stroke(Color.purple, lineWidth: 3)
-                            .background(Color.purple.opacity(0.3))
-                            .frame(width: rect.width, height: rect.height)
-                            .position(x: rect.midX, y: rect.midY)
-                            .contentShape(Rectangle())
-                            .gesture(
-                                DragGesture()
-                                    .onChanged { value in
-                                        dragOffsets[redaction.id] = CGSize(
-                                            width: value.translation.width,
-                                            height: value.translation.height
-                                        )
-                                    }
-                                    .onEnded { _ in
-                                        if let currentOffset = dragOffsets[redaction.id], currentOffset != .zero {
-                                            let newRect = CGRect(
-                                                x: rect.origin.x,
-                                                y: rect.origin.y,
-                                                width: rect.width,
-                                                height: rect.height
-                                            )
-                                            let normalizedRect = convertToNormalizedCoordinates(newRect, in: geometry.size)
-                                            onManualRedactionMoved?(redaction, normalizedRect)
-                                        }
-                                        dragOffsets[redaction.id] = .zero
-                                    }
-                            )
-                            .contextMenu {
-                                Button(role: .destructive) {
-                                    onManualRedactionDelete?(redaction)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                    }
-                }
-
             }
         }
     }
 
-    private func convertToViewCoordinates(_ normalizedRect: CGRect, in size: CGSize) -> CGRect {
-        // Vision uses bottom-left origin with normalized coordinates
-        let x = normalizedRect.origin.x * size.width
-        let y = (1 - normalizedRect.origin.y - normalizedRect.height) * size.height
-        let width = normalizedRect.width * size.width
-        let height = normalizedRect.height * size.height
-
-        return CGRect(x: x, y: y, width: width, height: height)
-    }
-
-    private func convertToNormalizedCoordinates(_ viewRect: CGRect, in size: CGSize) -> CGRect {
-        let x = viewRect.origin.x / size.width
-        let y = 1 - (viewRect.origin.y + viewRect.height) / size.height
-        let width = viewRect.width / size.width
-        let height = viewRect.height / size.height
-
-        return CGRect(x: x, y: y, width: width, height: height)
+    private func convertToView(_ normalized: CGRect, in size: CGSize) -> CGRect {
+        CGRect(
+            x: normalized.origin.x * size.width,
+            y: (1 - normalized.origin.y - normalized.height) * size.height,
+            width: normalized.width * size.width,
+            height: normalized.height * size.height
+        )
     }
 
     private func strokeColor(for status: DetectionStatus) -> Color {
-        switch status {
-        case .pending: return .orange
-        case .approved: return .green
-        case .rejected: return .red
-        }
+        .orange
     }
 
     private func fillColor(for status: DetectionStatus) -> Color {
-        switch status {
-        case .pending: return .orange
-        case .approved: return .green
-        case .rejected: return .clear
-        }
-    }
-}
-
-struct EditableDetectionBox: View {
-    let rect: CGRect
-    let color: Color
-    let fillColor: Color
-    let isSelected: Bool
-    var onTap: () -> Void
-    var onDrag: (CGSize) -> Void
-    var onDragEnd: () -> Void
-    var onResize: (DetectionOverlayView.ResizeCorner, CGSize) -> Void
-    var onResizeEnd: () -> Void
-
-    private let handleSize: CGFloat = 24
-
-    var body: some View {
-        ZStack {
-            // Main rectangle - use highPriorityGesture to win over drawing overlay
-            Rectangle()
-                .stroke(color, lineWidth: isSelected ? 4 : 3)
-                .background(fillColor.opacity(0.3))
-                .frame(width: rect.width, height: rect.height)
-                .position(x: rect.midX, y: rect.midY)
-                .contentShape(Rectangle())
-                .onTapGesture {
-                    onTap()
-                }
-                .highPriorityGesture(
-                    DragGesture(minimumDistance: 5)
-                        .onChanged { value in
-                            onDrag(value.translation)
-                        }
-                        .onEnded { _ in
-                            onDragEnd()
-                        }
-                )
-
-            // Resize handles (only show when selected)
-            if isSelected {
-                // Corner handle - bottom right
-                Circle()
-                    .fill(color)
-                    .frame(width: handleSize, height: handleSize)
-                    .position(x: rect.maxX, y: rect.maxY)
-                    .highPriorityGesture(
-                        DragGesture(minimumDistance: 1)
-                            .onChanged { value in
-                                onResize(.bottomRight, value.translation)
-                            }
-                            .onEnded { _ in
-                                onResizeEnd()
-                            }
-                    )
-            }
-        }
+        .orange
     }
 }
 
 #Preview {
-    DetectionOverlayView(
-        detections: [],
-        manualRedactions: [],
+    SimpleDetectionOverlay(
+        detections: .constant([]),
+        manualRedactions: .constant([]),
+        selectedDetectionId: .constant(nil),
         isDrawingMode: true,
-        drawingRect: .constant(nil),
-        selectedDetectionId: .constant(nil)
+        onManualRedactionCreated: { _ in },
+        onManualRedactionDeleted: { _ in }
     )
 }

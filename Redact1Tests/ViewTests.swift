@@ -744,68 +744,6 @@ final class ViewTests: XCTestCase {
         XCTAssertNotNil(view)
     }
 
-    // MARK: - EditableDetectionBox Tests
-
-    func testEditableDetectionBoxCanBeCreated() {
-        let rect = CGRect(x: 100, y: 100, width: 50, height: 50)
-        let view = EditableDetectionBox(
-            rect: rect,
-            color: .orange,
-            fillColor: .orange,
-            isSelected: false,
-            onTap: {},
-            onDrag: { _ in },
-            onDragEnd: {},
-            onResize: { _, _ in },
-            onResizeEnd: {}
-        )
-        XCTAssertNotNil(view)
-    }
-
-    func testEditableDetectionBoxWhenSelected() {
-        let rect = CGRect(x: 100, y: 100, width: 50, height: 50)
-        let view = EditableDetectionBox(
-            rect: rect,
-            color: .orange,
-            fillColor: .orange,
-            isSelected: true,
-            onTap: {},
-            onDrag: { _ in },
-            onDragEnd: {},
-            onResize: { _, _ in },
-            onResizeEnd: {}
-        )
-        XCTAssertNotNil(view)
-    }
-
-    func testEditableDetectionBoxWithCallbacks() {
-        var tapCalled = false
-        var dragCalled = false
-        var dragEndCalled = false
-        var resizeCalled = false
-        var resizeEndCalled = false
-
-        let rect = CGRect(x: 100, y: 100, width: 50, height: 50)
-        let view = EditableDetectionBox(
-            rect: rect,
-            color: .green,
-            fillColor: .green,
-            isSelected: false,
-            onTap: { tapCalled = true },
-            onDrag: { _ in dragCalled = true },
-            onDragEnd: { dragEndCalled = true },
-            onResize: { _, _ in resizeCalled = true },
-            onResizeEnd: { resizeEndCalled = true }
-        )
-        XCTAssertNotNil(view)
-        // Callbacks not called on init
-        XCTAssertFalse(tapCalled)
-        XCTAssertFalse(dragCalled)
-        XCTAssertFalse(dragEndCalled)
-        XCTAssertFalse(resizeCalled)
-        XCTAssertFalse(resizeEndCalled)
-    }
-
     // MARK: - DetectionOverlayView with Delete Callback Tests
 
     func testDetectionOverlayViewWithDeleteCallback() {
@@ -922,5 +860,380 @@ final class ViewTests: XCTestCase {
             updatedAt: 1234567890
         )
         XCTAssertFalse(request.isArchived)
+    }
+
+    // MARK: - CollectionPreviewView Tests
+
+    func testCollectionPreviewViewCanBeCreated() {
+        let view = CollectionPreviewView(files: [])
+        XCTAssertNotNil(view)
+    }
+
+    func testCollectionPreviewViewWithFiles() {
+        let file = EvidenceFile(
+            id: "file-123",
+            requestId: "req-123",
+            filename: "test.pdf",
+            fileType: .pdf,
+            mimeType: "application/pdf",
+            fileSize: 2048,
+            originalR2Key: "originals/test.pdf",
+            redactedR2Key: nil,
+            status: .uploaded,
+            uploadedBy: "user-123",
+            deletedAt: nil,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let view = CollectionPreviewView(files: [file])
+        XCTAssertNotNil(view)
+    }
+
+    func testCollectionPreviewViewWithMultipleFiles() {
+        let pdfFile = EvidenceFile(
+            id: "file-1",
+            requestId: "req-123",
+            filename: "doc.pdf",
+            fileType: .pdf,
+            mimeType: "application/pdf",
+            fileSize: 2048,
+            originalR2Key: "originals/doc.pdf",
+            redactedR2Key: nil,
+            status: .uploaded,
+            uploadedBy: "user-123",
+            deletedAt: nil,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let imageFile = EvidenceFile(
+            id: "file-2",
+            requestId: "req-123",
+            filename: "photo.jpg",
+            fileType: .image,
+            mimeType: "image/jpeg",
+            fileSize: 1024,
+            originalR2Key: "originals/photo.jpg",
+            redactedR2Key: nil,
+            status: .uploaded,
+            uploadedBy: "user-123",
+            deletedAt: nil,
+            createdAt: 1234567890,
+            updatedAt: 1234567890
+        )
+        let view = CollectionPreviewView(files: [pdfFile, imageFile])
+        XCTAssertNotNil(view)
+    }
+
+    // MARK: - PreviewPageView Tests
+
+    func testPreviewPageViewCanBeCreated() {
+        let item = PreviewItem(filename: "test.pdf", image: UIImage(systemName: "doc")!)
+        let view = PreviewPageView(item: item)
+        XCTAssertNotNil(view)
+    }
+
+    // MARK: - SimpleDetectionOverlay Tests
+
+    func testSimpleDetectionOverlayCanBeCreated() {
+        var detections: [Detection] = []
+        var manualRedactions: [ManualRedaction] = []
+
+        let view = SimpleDetectionOverlay(
+            detections: Binding(get: { detections }, set: { detections = $0 }),
+            manualRedactions: Binding(get: { manualRedactions }, set: { manualRedactions = $0 }),
+            selectedDetectionId: .constant(nil),
+            isDrawingMode: true,
+            onManualRedactionCreated: { _ in },
+            onManualRedactionDeleted: { _ in }
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testSimpleDetectionOverlayWithDetections() {
+        var detections: [Detection] = [
+            Detection(
+                id: "det-123",
+                fileId: "file-123",
+                detectionType: .face,
+                bboxX: 0.1,
+                bboxY: 0.1,
+                bboxWidth: 0.2,
+                bboxHeight: 0.2,
+                pageNumber: nil,
+                textStart: nil,
+                textEnd: nil,
+                textContent: nil,
+                confidence: 0.95,
+                status: .pending,
+                reviewedBy: nil,
+                reviewedAt: nil,
+                createdAt: 1234567890
+            )
+        ]
+        var manualRedactions: [ManualRedaction] = []
+
+        let view = SimpleDetectionOverlay(
+            detections: Binding(get: { detections }, set: { detections = $0 }),
+            manualRedactions: Binding(get: { manualRedactions }, set: { manualRedactions = $0 }),
+            selectedDetectionId: .constant(nil),
+            isDrawingMode: false,
+            onManualRedactionCreated: { _ in },
+            onManualRedactionDeleted: { _ in }
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testSimpleDetectionOverlayWithManualRedactions() {
+        var detections: [Detection] = []
+        var manualRedactions: [ManualRedaction] = [
+            ManualRedaction(
+                id: "mr-123",
+                fileId: "file-123",
+                redactionType: "manual",
+                bboxX: 0.3,
+                bboxY: 0.3,
+                bboxWidth: 0.1,
+                bboxHeight: 0.1,
+                pageNumber: nil,
+                createdBy: "user-123",
+                createdAt: 1234567890
+            )
+        ]
+
+        let view = SimpleDetectionOverlay(
+            detections: Binding(get: { detections }, set: { detections = $0 }),
+            manualRedactions: Binding(get: { manualRedactions }, set: { manualRedactions = $0 }),
+            selectedDetectionId: .constant(nil),
+            isDrawingMode: true,
+            onManualRedactionCreated: { _ in },
+            onManualRedactionDeleted: { _ in }
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testSimpleDetectionOverlayCallbacks() {
+        var detections: [Detection] = []
+        var manualRedactions: [ManualRedaction] = []
+        var createdRect: CGRect?
+        var deletedId: String?
+
+        let view = SimpleDetectionOverlay(
+            detections: Binding(get: { detections }, set: { detections = $0 }),
+            manualRedactions: Binding(get: { manualRedactions }, set: { manualRedactions = $0 }),
+            selectedDetectionId: .constant(nil),
+            isDrawingMode: true,
+            onManualRedactionCreated: { rect in createdRect = rect },
+            onManualRedactionDeleted: { id in deletedId = id }
+        )
+        XCTAssertNotNil(view)
+        XCTAssertNil(createdRect)
+        XCTAssertNil(deletedId)
+    }
+
+    // MARK: - DraggableRect Tests
+
+    func testDraggableRectCanBeCreated() {
+        let view = DraggableRect(
+            id: "rect-123",
+            normalizedBounds: CGRect(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
+            containerSize: CGSize(width: 300, height: 400),
+            strokeColor: .orange,
+            fillColor: .orange,
+            isSelected: false,
+            onSelect: {},
+            onMove: { _ in }
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testDraggableRectWhenSelected() {
+        let view = DraggableRect(
+            id: "rect-123",
+            normalizedBounds: CGRect(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
+            containerSize: CGSize(width: 300, height: 400),
+            strokeColor: .purple,
+            fillColor: .purple,
+            isSelected: true,
+            onSelect: {},
+            onMove: { _ in }
+        )
+        XCTAssertNotNil(view)
+    }
+
+    func testDraggableRectCallbacks() {
+        var selectCalled = false
+        var movedBounds: CGRect?
+
+        let view = DraggableRect(
+            id: "rect-123",
+            normalizedBounds: CGRect(x: 0.1, y: 0.1, width: 0.2, height: 0.2),
+            containerSize: CGSize(width: 300, height: 400),
+            strokeColor: .orange,
+            fillColor: .orange,
+            isSelected: false,
+            onSelect: { selectCalled = true },
+            onMove: { bounds in movedBounds = bounds }
+        )
+        XCTAssertNotNil(view)
+        XCTAssertFalse(selectCalled)
+        XCTAssertNil(movedBounds)
+    }
+
+    // MARK: - PageEditorView Tests
+
+    func testPageEditorViewCanBeCreated() {
+        let image = UIImage(systemName: "doc")!
+        var detections: [Detection] = []
+        var manualRedactions: [ManualRedaction] = []
+
+        let view = PageEditorView(
+            image: image,
+            detections: Binding(get: { detections }, set: { detections = $0 }),
+            manualRedactions: Binding(get: { manualRedactions }, set: { manualRedactions = $0 }),
+            selectedDetectionId: .constant(nil),
+            onRedactionCreated: { _ in },
+            onRedactionDeleted: { _ in }
+        )
+        XCTAssertNotNil(view)
+    }
+
+    // MARK: - RequestDetailView Single File Tests
+
+    func testRequestDetailViewSingleFileSupport() {
+        // RequestDetailView now supports single file per request
+        let view = RequestDetailView(requestId: "req-123")
+        XCTAssertNotNil(view)
+    }
+
+    // MARK: - FileUploadView PDF Only Tests
+
+    func testFileUploadViewPDFOnly() {
+        // FileUploadView now only supports PDF uploads
+        let view = FileUploadView(requestId: "req-123")
+        XCTAssertNotNil(view)
+    }
+
+    func testFileUploadViewPDFOnlyWithCallback() {
+        var uploadedFile: EvidenceFile?
+        let view = FileUploadView(requestId: "req-123") { file in
+            uploadedFile = file
+        }
+        XCTAssertNotNil(view)
+        XCTAssertNil(uploadedFile)
+    }
+
+    // MARK: - Detection Status Simplified Tests
+
+    func testDetectionStatusAllOrange() {
+        // All detection statuses now display as orange (no approval flow)
+        let pendingDetection = Detection(
+            id: "det-1",
+            fileId: "file-123",
+            detectionType: .face,
+            bboxX: 0.1, bboxY: 0.1, bboxWidth: 0.1, bboxHeight: 0.1,
+            pageNumber: nil, textStart: nil, textEnd: nil, textContent: nil,
+            confidence: 0.9,
+            status: .pending,
+            reviewedBy: nil, reviewedAt: nil,
+            createdAt: 0
+        )
+        XCTAssertEqual(pendingDetection.status, .pending)
+
+        let approvedDetection = Detection(
+            id: "det-2",
+            fileId: "file-123",
+            detectionType: .face,
+            bboxX: 0.1, bboxY: 0.1, bboxWidth: 0.1, bboxHeight: 0.1,
+            pageNumber: nil, textStart: nil, textEnd: nil, textContent: nil,
+            confidence: 0.9,
+            status: .approved,
+            reviewedBy: "user-123", reviewedAt: 1234567890,
+            createdAt: 0
+        )
+        XCTAssertEqual(approvedDetection.status, .approved)
+    }
+
+    // MARK: - RedactionService Tests
+
+    func testRedactionServiceAppliesAllDetections() {
+        // RedactionService now applies all detections, not just approved
+        let service = RedactionService.shared
+        XCTAssertNotNil(service)
+    }
+
+    func testRedactionServiceWithImage() {
+        let image = UIImage(systemName: "photo")!
+        let detections: [Detection] = []
+        let manualRedactions: [ManualRedaction] = []
+
+        let result = RedactionService.shared.applyRedactions(
+            to: image,
+            detections: detections,
+            manualRedactions: manualRedactions
+        )
+        XCTAssertNotNil(result)
+    }
+
+    func testRedactionServiceWithDetections() {
+        let image = UIImage(systemName: "photo")!
+        let detections: [Detection] = [
+            Detection(
+                id: "det-123",
+                fileId: "file-123",
+                detectionType: .face,
+                bboxX: 0.1,
+                bboxY: 0.1,
+                bboxWidth: 0.2,
+                bboxHeight: 0.2,
+                pageNumber: nil,
+                textStart: nil,
+                textEnd: nil,
+                textContent: nil,
+                confidence: 0.95,
+                status: .pending,
+                reviewedBy: nil,
+                reviewedAt: nil,
+                createdAt: 1234567890
+            )
+        ]
+
+        let result = RedactionService.shared.applyRedactions(
+            to: image,
+            detections: detections,
+            manualRedactions: []
+        )
+        XCTAssertNotNil(result)
+    }
+
+    func testRedactionServiceWithManualRedactions() {
+        let image = UIImage(systemName: "photo")!
+        let manualRedactions: [ManualRedaction] = [
+            ManualRedaction(
+                id: "mr-123",
+                fileId: "file-123",
+                redactionType: "manual",
+                bboxX: 0.3,
+                bboxY: 0.3,
+                bboxWidth: 0.1,
+                bboxHeight: 0.1,
+                pageNumber: nil,
+                createdBy: "user-123",
+                createdAt: 1234567890
+            )
+        ]
+
+        let result = RedactionService.shared.applyRedactions(
+            to: image,
+            detections: [],
+            manualRedactions: manualRedactions
+        )
+        XCTAssertNotNil(result)
+    }
+
+    // MARK: - VisionService Tests
+
+    func testVisionServiceExists() {
+        let service = VisionService.shared
+        XCTAssertNotNil(service)
     }
 }

@@ -23,9 +23,9 @@ class RedactionService {
             let rect = CGRect(x: 0, y: 0, width: width, height: height)
             image.draw(in: rect)
 
-            // Apply approved detections
+            // Apply all detections
             UIColor.black.setFill()
-            for detection in detections where detection.status == .approved {
+            for detection in detections {
                 if let bbox = detection.boundingBox {
                     // Convert normalized coordinates to pixel coordinates
                     // Vision uses bottom-left origin, UIKit uses top-left
@@ -67,7 +67,7 @@ class RedactionService {
             let pageRect = originalPage.bounds(for: .mediaBox)
 
             // Get detections and manual redactions for this page
-            let pageDetections = detections.filter { $0.pageNumber == pageNumber && $0.status == .approved }
+            let pageDetections = detections.filter { $0.pageNumber == pageNumber }
             let pageManualRedactions = manualRedactions.filter { $0.pageNumber == pageNumber }
 
             // Render the page to an image, apply redactions, then create new PDF page

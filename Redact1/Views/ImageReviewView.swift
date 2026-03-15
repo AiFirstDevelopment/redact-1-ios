@@ -307,19 +307,38 @@ struct ImageReviewView: View {
     }
 
     private func handleDetectionMoved(_ detection: Detection, _ newRect: CGRect) {
+        // Optimistically update local state to prevent snap-back
+        if let index = detections.firstIndex(where: { $0.id == detection.id }) {
+            let old = detections[index]
+            detections[index] = Detection(
+                id: old.id,
+                fileId: old.fileId,
+                detectionType: old.detectionType,
+                bboxX: Double(newRect.origin.x),
+                bboxY: Double(newRect.origin.y),
+                bboxWidth: Double(newRect.width),
+                bboxHeight: Double(newRect.height),
+                pageNumber: old.pageNumber,
+                textStart: old.textStart,
+                textEnd: old.textEnd,
+                textContent: old.textContent,
+                confidence: old.confidence,
+                status: old.status,
+                reviewedBy: old.reviewedBy,
+                reviewedAt: old.reviewedAt,
+                createdAt: old.createdAt
+            )
+        }
+
         Task {
             do {
-                // Update the detection with new bounding box
-                let updated = try await APIService.shared.updateDetectionBounds(
+                _ = try await APIService.shared.updateDetectionBounds(
                     detection.id,
                     bboxX: Double(newRect.origin.x),
                     bboxY: Double(newRect.origin.y),
                     bboxWidth: Double(newRect.width),
                     bboxHeight: Double(newRect.height)
                 )
-                if let index = detections.firstIndex(where: { $0.id == detection.id }) {
-                    detections[index] = updated
-                }
             } catch {
                 self.error = error.localizedDescription
             }
@@ -455,6 +474,18 @@ struct FullscreenImageEditor: View {
     @State private var selectedDetectionId: String?
     @State private var error: String?
 
+    // Track original state for cancel
+    @State private var originalDetections: [Detection] = []
+    @State private var originalManualRedactions: [ManualRedaction] = []
+
+    // Track pending changes to sync on Done
+    @State private var pendingNewRedactions: [ManualRedaction] = []
+    @State private var pendingDeletedRedactionIds: [String] = []
+    @State private var movedDetectionIds: Set<String> = []
+    @State private var movedRedactionIds: Set<String> = []
+
+    @State private var isSaving = false
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
@@ -481,23 +512,28 @@ struct FullscreenImageEditor: View {
             VStack {
                 HStack {
                     Button("Cancel") {
+                        // Just restore original state - no API calls
+                        detections = originalDetections
+                        manualRedactions = originalManualRedactions
                         dismiss()
                     }
                     .foregroundStyle(.white)
                     .padding()
+                    .disabled(isSaving)
 
                     Spacer()
 
                     Button("Done") {
-                        dismiss()
+                        saveChanges()
                     }
                     .fontWeight(.semibold)
                     .foregroundStyle(.white)
                     .padding()
+                    .disabled(isSaving)
                 }
                 .background(Color.black.opacity(0.5))
 
-                Text("Drag to draw • Tap box to move")
+                Text("Hold to draw • Tap box to move")
                     .font(.caption)
                     .foregroundStyle(.white)
                     .padding(8)
@@ -506,8 +542,20 @@ struct FullscreenImageEditor: View {
 
                 Spacer()
             }
+
+            if isSaving {
+                Color.black.opacity(0.5).ignoresSafeArea()
+                ProgressView("Saving...")
+                    .tint(.white)
+                    .foregroundStyle(.white)
+            }
         }
         .statusBar(hidden: true)
+        .onAppear {
+            // Save original state for cancel
+            originalDetections = detections
+            originalManualRedactions = manualRedactions
+        }
         .alert("Error", isPresented: .constant(error != nil)) {
             Button("OK") { error = nil }
         } message: {
@@ -515,76 +563,148 @@ struct FullscreenImageEditor: View {
         }
     }
 
-    private func handleDrawComplete(_ rect: CGRect) {
+    private func saveChanges() {
+        isSaving = true
         Task {
             do {
-                let body = CreateManualRedactionBody(
-                    redactionType: "manual",
-                    bboxX: Double(rect.origin.x),
-                    bboxY: Double(rect.origin.y),
-                    bboxWidth: Double(rect.width),
-                    bboxHeight: Double(rect.height),
-                    pageNumber: nil
-                )
-                let redaction = try await APIService.shared.createManualRedaction(
-                    fileId: fileId,
-                    body: body
-                )
-                manualRedactions.append(redaction)
+                // Create new redactions
+                for pending in pendingNewRedactions {
+                    let body = CreateManualRedactionBody(
+                        redactionType: pending.redactionType,
+                        bboxX: pending.bboxX ?? 0,
+                        bboxY: pending.bboxY ?? 0,
+                        bboxWidth: pending.bboxWidth ?? 0,
+                        bboxHeight: pending.bboxHeight ?? 0,
+                        pageNumber: pending.pageNumber
+                    )
+                    let created = try await APIService.shared.createManualRedaction(
+                        fileId: fileId,
+                        body: body
+                    )
+                    // Replace temp ID with real ID
+                    if let index = manualRedactions.firstIndex(where: { $0.id == pending.id }) {
+                        manualRedactions[index] = created
+                    }
+                }
+
+                // Delete removed redactions (only non-temp ones that existed before)
+                for redactionId in pendingDeletedRedactionIds {
+                    if !redactionId.hasPrefix("temp-") {
+                        try await APIService.shared.deleteManualRedaction(redactionId)
+                    }
+                }
+
+                // Update moved detections
+                for detectionId in movedDetectionIds {
+                    if let detection = detections.first(where: { $0.id == detectionId }),
+                       let box = detection.boundingBox {
+                        _ = try await APIService.shared.updateDetectionBounds(
+                            detectionId,
+                            bboxX: box.origin.x,
+                            bboxY: box.origin.y,
+                            bboxWidth: box.width,
+                            bboxHeight: box.height
+                        )
+                    }
+                }
+
+                // Update moved redactions (only non-temp ones)
+                for redactionId in movedRedactionIds {
+                    if !redactionId.hasPrefix("temp-"),
+                       let redaction = manualRedactions.first(where: { $0.id == redactionId }),
+                       let box = redaction.boundingBox {
+                        _ = try await APIService.shared.updateManualRedactionBounds(
+                            redactionId,
+                            bboxX: box.origin.x,
+                            bboxY: box.origin.y,
+                            bboxWidth: box.width,
+                            bboxHeight: box.height
+                        )
+                    }
+                }
+
+                isSaving = false
+                dismiss()
             } catch {
+                isSaving = false
                 self.error = error.localizedDescription
             }
         }
+    }
+
+    private func handleDrawComplete(_ rect: CGRect) {
+        // Create local redaction with temporary ID
+        let tempId = "temp-\(UUID().uuidString)"
+        let newRedaction = ManualRedaction(
+            id: tempId,
+            fileId: fileId,
+            redactionType: "manual",
+            bboxX: Double(rect.origin.x),
+            bboxY: Double(rect.origin.y),
+            bboxWidth: Double(rect.width),
+            bboxHeight: Double(rect.height),
+            pageNumber: nil,
+            createdBy: "",
+            createdAt: Int(Date().timeIntervalSince1970)
+        )
+        manualRedactions.append(newRedaction)
+        pendingNewRedactions.append(newRedaction)
         drawingRect = nil
     }
 
     private func handleDetectionMoved(_ detection: Detection, _ newRect: CGRect) {
-        Task {
-            do {
-                let updated = try await APIService.shared.updateDetectionBounds(
-                    detection.id,
-                    bboxX: Double(newRect.origin.x),
-                    bboxY: Double(newRect.origin.y),
-                    bboxWidth: Double(newRect.width),
-                    bboxHeight: Double(newRect.height)
-                )
-                if let index = detections.firstIndex(where: { $0.id == detection.id }) {
-                    detections[index] = updated
-                }
-            } catch {
-                self.error = error.localizedDescription
-            }
+        // Update local state only
+        if let index = detections.firstIndex(where: { $0.id == detection.id }) {
+            let old = detections[index]
+            detections[index] = Detection(
+                id: old.id,
+                fileId: old.fileId,
+                detectionType: old.detectionType,
+                bboxX: Double(newRect.origin.x),
+                bboxY: Double(newRect.origin.y),
+                bboxWidth: Double(newRect.width),
+                bboxHeight: Double(newRect.height),
+                pageNumber: old.pageNumber,
+                textStart: old.textStart,
+                textEnd: old.textEnd,
+                textContent: old.textContent,
+                confidence: old.confidence,
+                status: old.status,
+                reviewedBy: old.reviewedBy,
+                reviewedAt: old.reviewedAt,
+                createdAt: old.createdAt
+            )
+            movedDetectionIds.insert(detection.id)
         }
         selectedDetectionId = nil
     }
 
     private func handleManualRedactionMoved(_ redaction: ManualRedaction, _ newRect: CGRect) {
-        Task {
-            do {
-                let updated = try await APIService.shared.updateManualRedactionBounds(
-                    redaction.id,
-                    bboxX: Double(newRect.origin.x),
-                    bboxY: Double(newRect.origin.y),
-                    bboxWidth: Double(newRect.width),
-                    bboxHeight: Double(newRect.height)
-                )
-                if let index = manualRedactions.firstIndex(where: { $0.id == redaction.id }) {
-                    manualRedactions[index] = updated
-                }
-            } catch {
-                self.error = error.localizedDescription
-            }
+        // Update local state only
+        if let index = manualRedactions.firstIndex(where: { $0.id == redaction.id }) {
+            let old = manualRedactions[index]
+            manualRedactions[index] = ManualRedaction(
+                id: old.id,
+                fileId: old.fileId,
+                redactionType: old.redactionType,
+                bboxX: Double(newRect.origin.x),
+                bboxY: Double(newRect.origin.y),
+                bboxWidth: Double(newRect.width),
+                bboxHeight: Double(newRect.height),
+                pageNumber: old.pageNumber,
+                createdBy: old.createdBy,
+                createdAt: old.createdAt
+            )
+            movedRedactionIds.insert(redaction.id)
         }
     }
 
     private func handleManualRedactionDelete(_ redaction: ManualRedaction) {
-        Task {
-            do {
-                try await APIService.shared.deleteManualRedaction(redaction.id)
-                manualRedactions.removeAll { $0.id == redaction.id }
-            } catch {
-                self.error = error.localizedDescription
-            }
+        // Remove locally and track for deletion on save
+        manualRedactions.removeAll { $0.id == redaction.id }
+        pendingNewRedactions.removeAll { $0.id == redaction.id }
+        if !redaction.id.hasPrefix("temp-") {
+            pendingDeletedRedactionIds.append(redaction.id)
         }
     }
 }
