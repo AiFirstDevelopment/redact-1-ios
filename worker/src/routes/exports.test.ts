@@ -154,7 +154,7 @@ describe('Exports Routes', () => {
       const data = await response.json();
 
       expect(response.status).toBe(400);
-      expect(data.error).toBe('No reviewed files to export');
+      expect(data.error).toBe('No files to export');
     });
 
     it('should create export successfully', async () => {
@@ -166,7 +166,7 @@ describe('Exports Routes', () => {
             }),
           };
         }
-        if (sql.includes("SELECT * FROM files WHERE request_id = ? AND status = 'reviewed'")) {
+        if (sql.includes('SELECT * FROM files WHERE request_id = ?') && !sql.includes('status')) {
           return {
             bind: vi.fn().mockReturnValue({
               all: vi.fn().mockResolvedValue({ results: [mockFile] }),
@@ -180,7 +180,7 @@ describe('Exports Routes', () => {
             }),
           };
         }
-        if (sql.includes("SELECT * FROM detections WHERE file_id = ? AND status = 'approved'")) {
+        if (sql.includes('SELECT * FROM detections WHERE file_id = ?') && !sql.includes('status')) {
           return {
             bind: vi.fn().mockReturnValue({
               all: vi.fn().mockResolvedValue({ results: [] }),

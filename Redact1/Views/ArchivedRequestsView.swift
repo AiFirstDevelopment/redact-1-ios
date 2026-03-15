@@ -44,11 +44,13 @@ struct ArchivedRequestsView: View {
                 .listRowBackground(Color.clear)
             } else {
                 ForEach(filteredRequests) { request in
-                    ArchivedRequestRow(request: request, onUnarchive: { unarchived in
-                        if let idx = requests.firstIndex(where: { $0.id == unarchived.id }) {
-                            requests.remove(at: idx)
-                        }
-                    })
+                    NavigationLink(destination: ArchivedRequestDetailView(requestId: request.id)) {
+                        ArchivedRequestRow(request: request, onUnarchive: { unarchived in
+                            if let idx = requests.firstIndex(where: { $0.id == unarchived.id }) {
+                                requests.remove(at: idx)
+                            }
+                        })
+                    }
                 }
             }
         }

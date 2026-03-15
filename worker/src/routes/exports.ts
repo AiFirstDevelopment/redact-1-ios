@@ -23,31 +23,32 @@ export async function handleListExports(request: Request, env: Env, requestId: s
 }
 
 export async function handleCreateExport(request: Request, env: Env, requestId: string): Promise<Response> {
-  const auth = await authenticate(request, env);
-  if (!isAuthContext(auth)) return auth;
+  try {
+    const auth = await authenticate(request, env);
+    if (!isAuthContext(auth)) return auth;
 
-  // Verify request exists and get details
-  const req = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
-    .bind(requestId)
-    .first<{ id: string; request_number: string; title: string }>();
+    // Verify request exists and get details
+    const req = await env.DB.prepare('SELECT * FROM requests WHERE id = ?')
+      .bind(requestId)
+      .first<{ id: string; request_number: string; title: string }>();
 
-  if (!req) {
-    return error('Request not found', 404);
-  }
+    if (!req) {
+      return error('Request not found', 404);
+    }
 
-  // Get all files with redacted versions
-  const files = await env.DB.prepare("SELECT * FROM files WHERE request_id = ? AND status = 'reviewed'")
-    .bind(requestId)
-    .all<EvidenceFile>();
+    // Get all files for this request (exclude soft-deleted)
+    const files = await env.DB.prepare('SELECT * FROM files WHERE request_id = ? AND deleted_at IS NULL')
+      .bind(requestId)
+      .all<EvidenceFile>();
 
-  if (files.results.length === 0) {
-    return error('No reviewed files to export');
-  }
+    if (files.results.length === 0) {
+      return error('No files to export');
+    }
 
-  const id = generateId();
-  const timestamp = now();
-  const filename = `${req.request_number}_redacted_${new Date(timestamp * 1000).toISOString().split('T')[0]}.zip`;
-  const r2Key = `exports/${requestId}/${id}.zip`;
+    const id = generateId();
+    const timestamp = now();
+    const filename = `${req.request_number}_redacted_${new Date(timestamp * 1000).toISOString().split('T')[0]}.zip`;
+    const r2Key = `exports/${requestId}/${id}.zip`;
 
   // Generate audit report as JSON (iOS will create PDF)
   const auditLogs = await env.DB.prepare(
@@ -59,7 +60,7 @@ export async function handleCreateExport(request: Request, env: Env, requestId: 
   // Get detection/redaction summaries for each file
   const fileSummaries = [];
   for (const file of files.results) {
-    const detections = await env.DB.prepare("SELECT * FROM detections WHERE file_id = ? AND status = 'approved'")
+    const detections = await env.DB.prepare('SELECT * FROM detections WHERE file_id = ?')
       .bind(file.id)
       .all<Detection>();
 
@@ -104,8 +105,8 @@ export async function handleCreateExport(request: Request, env: Env, requestId: 
     .bind(id, requestId, r2Key, filename, files.results.length, auth.user.id, timestamp)
     .run();
 
-  // Update request status
-  await env.DB.prepare("UPDATE requests SET status = 'exported', updated_at = ? WHERE id = ?")
+  // Update request status to completed
+  await env.DB.prepare("UPDATE requests SET status = 'completed', updated_at = ? WHERE id = ?")
     .bind(timestamp, requestId)
     .run();
 
@@ -116,21 +117,25 @@ export async function handleCreateExport(request: Request, env: Env, requestId: 
     .bind(generateId(), auth.user.id, 'export', 'request', requestId, JSON.stringify({ file_count: files.results.length }), timestamp)
     .run();
 
-  return json({
-    export: {
-      id,
-      request_id: requestId,
-      filename,
-      file_count: files.results.length,
-      created_at: timestamp,
-    },
-    audit_report: auditReport,
-    files: files.results.map((f) => ({
-      id: f.id,
-      filename: f.filename,
-      file_type: f.file_type,
-    })),
-  }, 201);
+    return json({
+      export: {
+        id,
+        request_id: requestId,
+        filename,
+        file_count: files.results.length,
+        created_at: timestamp,
+      },
+      audit_report: auditReport,
+      files: files.results.map((f) => ({
+        id: f.id,
+        filename: f.filename,
+        file_type: f.file_type,
+      })),
+    }, 201);
+  } catch (e) {
+    console.error('handleCreateExport error:', e);
+    return error('Failed to create export: ' + (e instanceof Error ? e.message : String(e)));
+  }
 }
 
 export async function handleGetExport(request: Request, env: Env, id: string): Promise<Response> {

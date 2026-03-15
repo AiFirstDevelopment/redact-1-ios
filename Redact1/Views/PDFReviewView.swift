@@ -40,7 +40,27 @@ struct PDFReviewView: View {
                 ProgressView("Loading...")
                     .tint(.white)
                     .foregroundStyle(.white)
-            } else if !pageImages.isEmpty {
+            } else if pageImages.isEmpty {
+                VStack(spacing: 16) {
+                    Image(systemName: "doc.fill.badge.ellipsis")
+                        .font(.system(size: 60))
+                        .foregroundStyle(.gray)
+                    Text("Unable to load PDF")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                    if let error = error {
+                        Text(error)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal)
+                    }
+                    Button("Go Back") {
+                        dismiss()
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            } else {
                 // Main content - swipeable pages with overlay
                 TabView(selection: $currentPage) {
                     ForEach(0..<pageImages.count, id: \.self) { pageIndex in

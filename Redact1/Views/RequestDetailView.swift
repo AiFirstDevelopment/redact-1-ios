@@ -3,9 +3,11 @@ import SwiftUI
 struct RequestDetailView: View {
     let requestId: String
 
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var authService: AuthService
     @State private var request: RecordsRequest?
     @State private var file: EvidenceFile?
+    @State private var hasRedactions = false
     @State private var isLoading = false
     @State private var error: String?
     @State private var showingUploadSheet = false
@@ -27,6 +29,19 @@ struct RequestDetailView: View {
                 ProgressView()
                     .frame(maxWidth: .infinity)
                     .listRowBackground(Color.clear)
+            } else if let error = error, request == nil {
+                VStack(spacing: 8) {
+                    Text("Error loading request")
+                        .font(.headline)
+                    Text(error)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Button("Retry") {
+                        Task { await loadData() }
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .listRowBackground(Color.clear)
             } else if let request = request {
                 // Request info section
                 Section("Request Details") {
@@ -84,12 +99,12 @@ struct RequestDetailView: View {
                     Button(action: { showingPreview = true }) {
                         Label("Preview Redacted", systemImage: "eye")
                     }
-                    .disabled(file == nil)
+                    .disabled(file == nil || !hasRedactions)
 
                     Button(action: { showingExportSheet = true }) {
-                        Label("Export Redacted", systemImage: "square.and.arrow.up")
+                        Label("Share Redacted", systemImage: "square.and.arrow.up")
                     }
-                    .disabled(file == nil)
+                    .disabled(file == nil || !hasRedactions)
 
                     if isAdmin {
                         Button(action: { showingArchiveConfirmation = true }) {
@@ -161,12 +176,14 @@ struct RequestDetailView: View {
         isArchiving = true
         do {
             _ = try await APIService.shared.archiveRequest(currentRequest.id)
-            // Navigate back after archiving
-            request = nil
+            // Navigate back to request list
+            await MainActor.run {
+                dismiss()
+            }
         } catch {
             self.error = error.localizedDescription
+            isArchiving = false
         }
-        isArchiving = false
     }
 
     private func updateStatus(_ newStatus: RequestStatus) async {
@@ -196,6 +213,7 @@ struct RequestDetailView: View {
     private func loadData() async {
         isLoading = true
         error = nil
+        hasRedactions = false
 
         do {
             async let requestTask = APIService.shared.getRequest(requestId)
@@ -204,6 +222,12 @@ struct RequestDetailView: View {
             request = try await requestTask
             let files = try await filesTask
             file = files.first
+
+            // Check if there are any redactions
+            if let currentFile = file {
+                let result = try await APIService.shared.listDetections(fileId: currentFile.id)
+                hasRedactions = !result.detections.isEmpty || !result.manualRedactions.isEmpty
+            }
         } catch {
             self.error = error.localizedDescription
         }

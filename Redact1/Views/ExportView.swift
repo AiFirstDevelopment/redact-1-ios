@@ -1,4 +1,5 @@
 import SwiftUI
+import PDFKit
 
 struct ExportView: View {
     @Environment(\.dismiss) private var dismiss
@@ -17,7 +18,7 @@ struct ExportView: View {
                     VStack(spacing: 16) {
                         ProgressView()
                             .scaleEffect(1.5)
-                        Text("Preparing export...")
+                        Text("Preparing...")
                             .font(.headline)
                         Text("Applying redactions to \(files.count) file(s)")
                             .font(.caption)
@@ -29,7 +30,7 @@ struct ExportView: View {
                             .font(.system(size: 60))
                             .foregroundStyle(.green)
 
-                        Text("Export Complete")
+                        Text("Ready to Share")
                             .font(.title2)
                             .fontWeight(.bold)
 
@@ -47,13 +48,13 @@ struct ExportView: View {
                             .font(.system(size: 60))
                             .foregroundStyle(.blue)
 
-                        Text("Export Redacted Files")
+                        Text("Share Redacted Files")
                             .font(.title2)
                             .fontWeight(.bold)
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Request: \(request.requestNumber)")
-                            Text("Files to export: \(files.count)")
+                            Text("Files to share: \(files.count)")
                         }
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
@@ -72,7 +73,7 @@ struct ExportView: View {
                         .frame(maxHeight: 200)
 
                         Button(action: startExport) {
-                            Label("Start Export", systemImage: "square.and.arrow.up")
+                            Label("Share", systemImage: "square.and.arrow.up")
                                 .frame(maxWidth: .infinity)
                         }
                         .buttonStyle(.borderedProminent)
@@ -86,7 +87,7 @@ struct ExportView: View {
                 }
             }
             .padding()
-            .navigationTitle("Export")
+            .navigationTitle("Share")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -104,18 +105,50 @@ struct ExportView: View {
 
         Task {
             do {
-                // Create export on server
+                // Create export record on server
                 let (_, _) = try await APIService.shared.createExport(requestId: request.id)
 
-                // Download redacted files and save to temp directory
+                // Apply redactions client-side and save to temp directory
                 var downloadedFiles: [(name: String, url: URL)] = []
                 let tempDir = FileManager.default.temporaryDirectory
 
                 for file in files {
-                    let data = try await APIService.shared.getFileRedacted(file.id)
-                    let tempURL = tempDir.appendingPathComponent(file.filename)
-                    try data.write(to: tempURL)
-                    downloadedFiles.append((file.filename, tempURL))
+                    // Get original file and detections
+                    let originalData = try await APIService.shared.getFileOriginal(file.id)
+                    let result = try await APIService.shared.listDetections(fileId: file.id)
+
+                    var redactedData: Data?
+                    var exportFilename = file.filename
+
+                    if file.fileType == .pdf {
+                        // Apply PDF redactions
+                        if let pdfDocument = PDFDocument(data: originalData),
+                           let redactedPDF = RedactionService.shared.applyRedactions(
+                               to: pdfDocument,
+                               detections: result.detections,
+                               manualRedactions: result.manualRedactions
+                           ) {
+                            redactedData = RedactionService.shared.exportPDF(redactedPDF)
+                        }
+                    } else {
+                        // Apply image redactions
+                        if let originalImage = UIImage(data: originalData),
+                           let redactedImage = RedactionService.shared.applyRedactions(
+                               to: originalImage,
+                               detections: result.detections,
+                               manualRedactions: result.manualRedactions
+                           ) {
+                            redactedData = RedactionService.shared.exportImage(redactedImage)
+                            // Change extension to .jpg for exported images
+                            exportFilename = (file.filename as NSString).deletingPathExtension + "_redacted.jpg"
+                        }
+                    }
+
+                    if let data = redactedData {
+                        let tempURL = tempDir.appendingPathComponent(exportFilename)
+                        try data.write(to: tempURL)
+                        downloadedFiles.append((exportFilename, tempURL))
+                    }
                 }
 
                 exportedFiles = downloadedFiles

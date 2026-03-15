@@ -16,6 +16,13 @@ struct MainTabView: View {
                 Label("Requests", systemImage: "doc.text")
             }
 
+            NavigationStack {
+                ArchivedRequestsView()
+            }
+            .tabItem {
+                Label("Archived", systemImage: "archivebox")
+            }
+
             if isAdmin {
                 NavigationStack {
                     UsersView()

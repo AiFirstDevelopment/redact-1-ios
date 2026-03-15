@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		3F34ECD76669F9EEF71AD323 /* CollectionPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D879B71F1278DF83BFDC56D0 /* CollectionPreviewView.swift */; };
 		5C361635281C7FF1EB12F685 /* ArchivedRequestsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB9F0F2C2A332D6C6D799153 /* ArchivedRequestsView.swift */; };
+		F8837C54FB61BC8A71E75EAF /* ArchivedRequestDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2240582B76BB18C73817D0CB /* ArchivedRequestDetailView.swift */; };
 		R1000001 /* Redact1App.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000002 /* Redact1App.swift */; };
 		R1000003 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = R1000004 /* ContentView.swift */; };
 		R1000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = R1000006 /* Assets.xcassets */; };
@@ -57,6 +58,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		131AF9614785174DDD6B5E60 /* ArchivedRequestDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ArchivedRequestDetailView.swift; path = Redact1/Views/ArchivedRequestDetailView.swift; sourceTree = "<group>"; };
+		2240582B76BB18C73817D0CB /* ArchivedRequestDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ArchivedRequestDetailView.swift; sourceTree = "<group>"; };
 		CB9F0F2C2A332D6C6D799153 /* ArchivedRequestsView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ArchivedRequestsView.swift; path = Redact1/Views/ArchivedRequestsView.swift; sourceTree = SOURCE_ROOT; };
 		D879B71F1278DF83BFDC56D0 /* CollectionPreviewView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CollectionPreviewView.swift; sourceTree = "<group>"; };
 		R1000002 /* Redact1App.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Redact1App.swift; sourceTree = "<group>"; };
@@ -190,6 +193,8 @@
 				R1000113 /* Components */,
 				CB9F0F2C2A332D6C6D799153 /* ArchivedRequestsView.swift */,
 				D879B71F1278DF83BFDC56D0 /* CollectionPreviewView.swift */,
+				131AF9614785174DDD6B5E60 /* ArchivedRequestDetailView.swift */,
+				2240582B76BB18C73817D0CB /* ArchivedRequestDetailView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -346,6 +351,7 @@
 				R1000072 /* OnboardingView.swift in Sources */,
 				5C361635281C7FF1EB12F685 /* ArchivedRequestsView.swift in Sources */,
 				3F34ECD76669F9EEF71AD323 /* CollectionPreviewView.swift in Sources */,
+				F8837C54FB61BC8A71E75EAF /* ArchivedRequestDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
