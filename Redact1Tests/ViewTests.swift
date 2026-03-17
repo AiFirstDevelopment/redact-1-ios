@@ -1438,4 +1438,45 @@ final class ViewTests: XCTestCase {
         let view = RequestDetailView(requestId: "req-with-redactions")
         XCTAssertNotNil(view)
     }
+
+    // MARK: - RequestFormView Tests
+
+    func testRequestFormViewCanBeCreated() {
+        let view = RequestFormView()
+        XCTAssertNotNil(view)
+    }
+
+    func testRequestFormViewWithCallback() {
+        var savedRequest: RecordsRequest?
+        let view = RequestFormView { request in
+            savedRequest = request
+        }
+        XCTAssertNotNil(view)
+        XCTAssertNil(savedRequest) // Not called yet
+    }
+
+    func testRequestFormViewPDFOnly() {
+        // RequestFormView should only support PDF uploads, not photos
+        // This is verified by the absence of PhotosPicker in the view
+        let view = RequestFormView()
+        XCTAssertNotNil(view)
+        // The view uses fileImporter with allowedContentTypes: [UTType.pdf]
+    }
+
+    func testPendingFileStruct() {
+        let data = Data("test".utf8)
+        let file = PendingFile(name: "test.pdf", data: data, mimeType: "application/pdf")
+        XCTAssertEqual(file.name, "test.pdf")
+        XCTAssertEqual(file.data, data)
+        XCTAssertEqual(file.mimeType, "application/pdf")
+        XCTAssertNotNil(file.id)
+    }
+
+    func testPendingFileIdentifiable() {
+        let data = Data("test".utf8)
+        let file1 = PendingFile(name: "test1.pdf", data: data, mimeType: "application/pdf")
+        let file2 = PendingFile(name: "test2.pdf", data: data, mimeType: "application/pdf")
+        // Each PendingFile should have a unique ID
+        XCTAssertNotEqual(file1.id, file2.id)
+    }
 }

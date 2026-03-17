@@ -1,5 +1,4 @@
 import SwiftUI
-import PhotosUI
 import UniformTypeIdentifiers
 
 struct PendingFile: Identifiable {
@@ -21,7 +20,6 @@ struct RequestFormView: View {
     @State private var users: [User] = []
     @State private var selectedUserId: String?
     @State private var pendingFiles: [PendingFile] = []
-    @State private var selectedPhotoItem: PhotosPickerItem?
     @State private var isShowingDocumentPicker = false
     @FocusState private var focusedField: Field?
 
@@ -89,8 +87,8 @@ struct RequestFormView: View {
                     } else {
                         ForEach(pendingFiles) { file in
                             HStack {
-                                Image(systemName: file.mimeType == "application/pdf" ? "doc.fill" : "photo.fill")
-                                    .foregroundStyle(.blue)
+                                Image(systemName: "doc.fill")
+                                    .foregroundStyle(.red)
                                 Text(file.name)
                                 Spacer()
                                 Button {
@@ -103,19 +101,12 @@ struct RequestFormView: View {
                         }
                     }
 
-                    HStack(spacing: 16) {
-                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                            Label("Photo", systemImage: "photo")
-                        }
-                        .buttonStyle(.bordered)
-
-                        Button {
-                            isShowingDocumentPicker = true
-                        } label: {
-                            Label("PDF", systemImage: "doc")
-                        }
-                        .buttonStyle(.bordered)
+                    Button {
+                        isShowingDocumentPicker = true
+                    } label: {
+                        Label("Add PDF", systemImage: "doc.badge.plus")
                     }
+                    .buttonStyle(.bordered)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 4)
                 } header: {
@@ -162,15 +153,6 @@ struct RequestFormView: View {
                         users = try await APIService.shared.listUsers()
                     } catch {
                         // Ignore - picker just won't show
-                    }
-                }
-            }
-            .onChange(of: selectedPhotoItem) { _, newValue in
-                Task {
-                    if let data = try? await newValue?.loadTransferable(type: Data.self) {
-                        let filename = "image_\(Int(Date().timeIntervalSince1970)).jpg"
-                        pendingFiles.append(PendingFile(name: filename, data: data, mimeType: "image/jpeg"))
-                        selectedPhotoItem = nil
                     }
                 }
             }
